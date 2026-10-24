@@ -45,6 +45,13 @@ API), so the browser must be able to reach that host.
 These are inlined at build time. For a deployment, also add the panel's origin to the API's
 `WHENUE_CORS_ALLOWED_ORIGINS`.
 
+## Container image
+
+The `Dockerfile` builds the panel with `VITE_GRAPHQL_URL=/graphql` and serves it from nginx on port
+8080, which forwards `/graphql` to `API_UPSTREAM` (default `http://whenue-api:8080`). The same image
+therefore works in every environment and the API needs no CORS entry for it. CI pushes it to
+`ghcr.io/pouyan021/whenue-panel` on every merge to `main`; whenue-deploy runs it.
+
 ## Scripts
 
 ```sh
