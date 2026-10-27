@@ -3,22 +3,26 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router';
 
 import { TestimonialDialog } from '../components/TestimonialDialog';
-import { Button, Empty, ErrorBanner, Loading, StatusBadge, Stars, videoStatusLabel } from '../components/ui';
+import { Button, Empty, ErrorBanner, Loading, StatusBadge, Stars, VIDEO_LABEL } from '../components/ui';
 import { TESTIMONIAL_COUNTS, TESTIMONIALS, type Testimonial, type TestimonialStatus } from '../graphql/operations';
+import type { MessageKey } from '../i18n/en';
+import { useI18n } from '../i18n/i18n';
 import { config } from '../lib/config';
-import { formatDateTime } from '../lib/format';
+import { useFormat } from '../lib/format';
 import { useCurrentVenue } from '../lib/venue';
 
 type Filter = TestimonialStatus | 'ALL';
 
-const FILTERS: { value: Filter; label: string }[] = [
-  { value: 'PENDING', label: 'To review' },
-  { value: 'APPROVED', label: 'Approved' },
-  { value: 'REJECTED', label: 'Rejected' },
-  { value: 'ALL', label: 'All' },
+const FILTERS: { value: Filter; label: MessageKey }[] = [
+  { value: 'PENDING', label: 'testimonials.tab.review' },
+  { value: 'APPROVED', label: 'testimonial.status.approved' },
+  { value: 'REJECTED', label: 'testimonial.status.rejected' },
+  { value: 'ALL', label: 'testimonials.tab.all' },
 ];
 
 export function TestimonialsPage() {
+  const { t } = useI18n();
+  const format = useFormat();
   const { venue } = useCurrentVenue();
   const [params, setParams] = useSearchParams();
   const filter = (params.get('status') as Filter | null) ?? 'PENDING';
@@ -52,7 +56,7 @@ export function TestimonialsPage() {
   return (
     <section>
       <header className="page-header">
-        <h1>Testimonials</h1>
+        <h1>{t('testimonials.title')}</h1>
       </header>
 
       <div className="tabs" role="tablist">
@@ -64,8 +68,8 @@ export function TestimonialsPage() {
             className="tab"
             onClick={() => setFilter(value)}
           >
-            {label}
-            {countOf(value) != null && <span className="tab-count">{countOf(value)}</span>}
+            {t(label)}
+            {countOf(value) != null && <span className="tab-count">{format.number(countOf(value)!)}</span>}
           </button>
         ))}
       </div>
@@ -74,7 +78,7 @@ export function TestimonialsPage() {
       {loading && testimonials.length === 0 ? (
         <Loading />
       ) : testimonials.length === 0 ? (
-        <Empty>{filter === 'PENDING' ? 'Nothing to review. You are all caught up.' : 'No testimonials here yet.'}</Empty>
+        <Empty>{filter === 'PENDING' ? t('testimonials.caughtUp') : t('testimonials.empty')}</Empty>
       ) : (
         <ul className="testimonial-grid">
           {testimonials.map((t) => (
@@ -88,7 +92,7 @@ export function TestimonialsPage() {
       {testimonials.length === size && (
         <div className="more">
           <Button onClick={() => setSize(size + config.pageSize)} disabled={loading}>
-            Show more
+            {t('common.showMore')}
           </Button>
         </div>
       )}
@@ -98,33 +102,43 @@ export function TestimonialsPage() {
   );
 }
 
-function TestimonialCard({ testimonial: t, onOpen }: { testimonial: Testimonial; onOpen: () => void }) {
-  const poster = t.video?.posterUrl;
+function TestimonialCard({ testimonial: item, onOpen }: { testimonial: Testimonial; onOpen: () => void }) {
+  const { t } = useI18n();
+  const format = useFormat();
+  const poster = item.video?.posterUrl;
   return (
-    <button className="testimonial-card" onClick={onOpen} aria-label={`Open testimonial from ${t.user.name}`}>
+    <button
+      className="testimonial-card"
+      onClick={onOpen}
+      aria-label={t('testimonials.open', { name: item.user.name })}
+    >
       <div className="poster">
         {poster ? (
           <img src={poster} alt="" loading="lazy" />
         ) : (
           <span className="poster-placeholder">
-            {t.video ? videoStatusLabel(t.video.status) : t.videoUrl ? 'Video' : 'No video'}
+            {item.video ? t(VIDEO_LABEL[item.video.status]) : item.videoUrl ? t('video.video') : t('video.none')}
           </span>
         )}
-        {t.video?.durationSeconds != null && (
-          <span className="duration">{Math.round(t.video.durationSeconds)}s</span>
+        {item.video?.durationSeconds != null && (
+          <span className="duration">{t('video.seconds', { seconds: format.number(Math.round(item.video.durationSeconds)) })}</span>
         )}
       </div>
       <div className="testimonial-meta">
         <div className="row">
-          <strong>{t.user.name}</strong>
-          <StatusBadge status={t.status} />
+          <strong>{item.user.name}</strong>
+          <StatusBadge status={item.status} />
         </div>
         <div className="row muted small">
-          <span>{formatDateTime(t.createdAt)}</span>
-          <Stars rating={t.rating} />
+          <span>{format.dateTime(item.createdAt)}</span>
+          <Stars rating={item.rating} />
         </div>
-        {t.text && <p className="snippet">{t.text}</p>}
-        {t.approvedForUse && <span className="badge badge-use">Cleared for marketing</span>}
+        {item.text && <p className="snippet">{item.text}</p>}
+        {item.withdrawnAt ? (
+          <span className="badge badge-rejected">{t('testimonial.withdrawn')}</span>
+        ) : (
+          item.approvedForUse && <span className="badge badge-use">{t('testimonial.cleared')}</span>
+        )}
       </div>
     </button>
   );

@@ -19,6 +19,9 @@ const testimonial = {
   rating: 4,
   text: 'Lovely coffee and quick service',
   approvedForUse: false,
+  blurFace: false,
+  withdrawnAt: null,
+  publishableIn: ['PUBLISH_IN_CLINIC'],
   createdAt: '2026-10-20T18:30:00Z',
   videoUrl: null,
   video: {
@@ -29,7 +32,7 @@ const testimonial = {
     playbackUrl: 'https://s3.test/video.mp4?sig=1',
     posterUrl: 'https://s3.test/poster.jpg?sig=1',
   },
-  user: { __typename: 'User', id: '7', name: 'Sam', email: 'sam@example.com' },
+  user: { __typename: 'User', id: '7', name: 'Sam', email: 'sam@example.com', phone: null },
   visit: { __typename: 'Visit', id: '9', visitDate: '2026-10-20T17:00:00Z' },
   campaign: null,
 };

@@ -3,16 +3,18 @@ import { useState, type FormEvent } from 'react';
 
 import { Button, ErrorBanner, Field, Loading } from '../components/ui';
 import { UPDATE_VENUE, VENUE, type Venue } from '../graphql/operations';
+import { useI18n } from '../i18n/i18n';
 import { useCurrentVenue } from '../lib/venue';
 
 export function VenuePage() {
+  const { t } = useI18n();
   const { venue } = useCurrentVenue();
   const { data, loading, error } = useQuery(VENUE, { variables: { id: venue.id } });
 
   return (
     <section>
       <header className="page-header">
-        <h1>Venue details</h1>
+        <h1>{t('branch.title')}</h1>
       </header>
       <ErrorBanner error={error} />
       {loading ? <Loading /> : data?.venue && <VenueForm venue={data.venue} />}
@@ -21,6 +23,7 @@ export function VenuePage() {
 }
 
 function VenueForm({ venue }: { venue: Venue }) {
+  const { t } = useI18n();
   const [update, { loading, error, data }] = useMutation(UPDATE_VENUE);
   const [form, setForm] = useState({
     name: venue.name,
@@ -54,31 +57,31 @@ function VenueForm({ venue }: { venue: Venue }) {
 
   return (
     <form className="form card narrow" onSubmit={submit}>
-      <Field label="Name">
+      <Field label={t('branch.name')}>
         <input required value={form.name} onChange={(e) => set('name', e.target.value)} />
       </Field>
-      <Field label="Description" hint="Visitors see this in the app.">
+      <Field label={t('branch.description')} hint={t('branch.descriptionHint')}>
         <textarea rows={3} value={form.description} onChange={(e) => set('description', e.target.value)} />
       </Field>
-      <Field label="Address">
+      <Field label={t('branch.address')}>
         <input required value={form.address} onChange={(e) => set('address', e.target.value)} />
       </Field>
       <div className="form-row">
-        <Field label="Contact email">
-          <input type="email" required value={form.contactEmail} onChange={(e) => set('contactEmail', e.target.value)} />
+        <Field label={t('branch.email')}>
+          <input type="email" dir="ltr" required value={form.contactEmail} onChange={(e) => set('contactEmail', e.target.value)} />
         </Field>
-        <Field label="Contact phone">
-          <input type="tel" value={form.contactPhone} onChange={(e) => set('contactPhone', e.target.value)} />
+        <Field label={t('branch.phone')}>
+          <input type="tel" dir="ltr" value={form.contactPhone} onChange={(e) => set('contactPhone', e.target.value)} />
         </Field>
       </div>
-      <Field label="Logo URL">
-        <input type="url" value={form.logo} onChange={(e) => set('logo', e.target.value)} />
+      <Field label={t('branch.logo')}>
+        <input type="url" dir="ltr" value={form.logo} onChange={(e) => set('logo', e.target.value)} />
       </Field>
       <ErrorBanner error={error} />
       <div className="form-actions">
-        {data && !loading && <span className="muted">Saved</span>}
+        {data && !loading && <span className="muted">{t('common.saved')}</span>}
         <Button variant="primary" type="submit" disabled={loading}>
-          Save
+          {t('common.save')}
         </Button>
       </div>
     </form>

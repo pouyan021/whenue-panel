@@ -1,11 +1,14 @@
 import { useMutation } from '@apollo/client/react';
 import { useState, type FormEvent } from 'react';
 
+import { LanguageSwitch } from '../components/Shell';
 import { Button, ErrorBanner, Field } from '../components/ui';
 import { LOGIN } from '../graphql/operations';
+import { useI18n } from '../i18n/i18n';
 import { useAuth } from '../lib/auth';
 
 export function LoginPage() {
+  const { t } = useI18n();
   const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,12 +23,12 @@ export function LoginPage() {
   return (
     <main className="login">
       <form className="card login-card" onSubmit={submit}>
-        <h1>Whenue</h1>
-        <p className="muted">Sign in to review your venue's testimonials.</p>
-        <Field label="Email">
-          <input type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} />
+        <h1>{t('login.title')}</h1>
+        <p className="muted">{t('login.intro')}</p>
+        <Field label={t('login.email')}>
+          <input type="email" dir="ltr" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} />
         </Field>
-        <Field label="Password">
+        <Field label={t('login.password')}>
           <input
             type="password"
             autoComplete="current-password"
@@ -36,8 +39,9 @@ export function LoginPage() {
         </Field>
         <ErrorBanner error={error} />
         <Button variant="primary" type="submit" disabled={loading}>
-          {loading ? 'Signing in…' : 'Sign in'}
+          {loading ? t('login.signingIn') : t('login.signIn')}
         </Button>
+        <LanguageSwitch />
       </form>
     </main>
   );

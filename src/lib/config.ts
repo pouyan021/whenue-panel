@@ -8,3 +8,8 @@ export const config = {
 export function visitLink(token: string, base: string = config.visitLinkBase) {
   return base + encodeURIComponent(token);
 }
+
+/** whenue-api's integration API reference, served next to its GraphQL endpoint. */
+export function apiDocsUrl(graphqlUrl: string = config.graphqlUrl) {
+  return graphqlUrl.replace(/\/graphql\/?$/, '') + '/swagger-ui.html';
+}

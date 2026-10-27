@@ -2,14 +2,21 @@ import { useMutation, useQuery } from '@apollo/client/react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 
+import { DateTimeInput } from '../components/DateTimeInput';
+import { Mobile } from '../components/members';
 import { Button, Dialog, Empty, ErrorBanner, Field, Loading, StatusBadge } from '../components/ui';
 import { CAMPAIGNS, CREATE_VISIT, DELETE_VISIT, ISSUE_VISIT_TOKEN, VISITS, type Visit } from '../graphql/operations';
+import { useI18n, type Translate } from '../i18n/i18n';
 import { config, visitLink } from '../lib/config';
-import { formatDateTime, fromLocalInput, toLocalInput } from '../lib/format';
+import { useFormat } from '../lib/format';
+import { toLatinDigits } from '../lib/numbers';
 import { useCurrentVenue } from '../lib/venue';
 
+/** Every visit at the branch: check-ins at reception, visits from the clinic's system, and testimonial requests. */
 export function VisitsPage() {
-  const { venue } = useCurrentVenue();
+  const { t } = useI18n();
+  const { venue, hasModule } = useCurrentVenue();
+  const testimonials = hasModule('TESTIMONIALS');
   const [size, setSize] = useState(config.pageSize);
   const [creating, setCreating] = useState(false);
   const [linkFor, setLinkFor] = useState<Visit | null>(null);
@@ -19,32 +26,35 @@ export function VisitsPage() {
   return (
     <section>
       <header className="page-header">
-        <h1>Visits</h1>
-        <Button variant="primary" onClick={() => setCreating(true)}>
-          New visit
-        </Button>
+        <h1>{t('visits.title')}</h1>
+        {testimonials && (
+          <Button variant="primary" onClick={() => setCreating(true)}>
+            {t('visits.new')}
+          </Button>
+        )}
       </header>
-      <p className="muted">Add a visit, then send the visitor their link to record a testimonial.</p>
+      <p className="muted">{testimonials ? t('visits.introTestimonials') : t('visits.intro')}</p>
 
       <ErrorBanner error={error} />
       {loading && visits.length === 0 ? (
         <Loading />
       ) : visits.length === 0 ? (
-        <Empty>No visits yet.</Empty>
+        <Empty>{t('visits.empty')}</Empty>
       ) : (
         <table className="table">
           <thead>
             <tr>
-              <th>Visitor</th>
-              <th>Visit</th>
-              <th>Campaign</th>
-              <th>Testimonial</th>
-              <th aria-label="Actions" />
+              <th>{t('visits.visitor')}</th>
+              <th>{t('visits.when')}</th>
+              <th>{t('visits.amount')}</th>
+              {testimonials && <th>{t('visits.campaign')}</th>}
+              {testimonials && <th>{t('visits.testimonial')}</th>}
+              {testimonials && <th aria-label={t('common.actions')} />}
             </tr>
           </thead>
           <tbody>
             {visits.map((visit) => (
-              <VisitRow key={visit.id} visit={visit} onLink={() => setLinkFor(visit)} />
+              <VisitRow key={visit.id} visit={visit} testimonials={testimonials} onLink={() => setLinkFor(visit)} />
             ))}
           </tbody>
         </table>
@@ -53,7 +63,7 @@ export function VisitsPage() {
       {visits.length === size && (
         <div className="more">
           <Button onClick={() => setSize(size + config.pageSize)} disabled={loading}>
-            Show more
+            {t('common.showMore')}
           </Button>
         </div>
       )}
@@ -72,11 +82,13 @@ export function VisitsPage() {
   );
 }
 
-function VisitRow({ visit, onLink }: { visit: Visit; onLink: () => void }) {
+function VisitRow({ visit, testimonials, onLink }: { visit: Visit; testimonials: boolean; onLink: () => void }) {
+  const { t } = useI18n();
+  const format = useFormat();
   const [remove, { loading, error }] = useMutation(DELETE_VISIT, { refetchQueries: ['Visits'] });
 
   function onDelete() {
-    if (!window.confirm(`Delete ${visit.user.name}'s visit?`)) return;
+    if (!window.confirm(t('visits.deleteConfirm', { name: visit.user.name }))) return;
     void remove({ variables: { id: visit.id } }).catch(() => undefined);
   }
 
@@ -84,33 +96,46 @@ function VisitRow({ visit, onLink }: { visit: Visit; onLink: () => void }) {
     <tr>
       <td>
         <strong>{visit.user.name}</strong>
-        <div className="muted small">{visit.user.email}</div>
+        <div className="muted small">
+          {visit.user.phone ? <Mobile value={visit.user.phone} /> : <span dir="ltr">{visit.user.email}</span>}
+        </div>
         <ErrorBanner error={error} />
       </td>
-      <td>{formatDateTime(visit.visitDate)}</td>
-      <td>{visit.campaign?.name ?? <span className="muted">None</span>}</td>
-      <td>
-        {visit.testimonial ? (
-          <Link to={`/testimonials?status=ALL&open=${visit.testimonial.id}`}>
-            <StatusBadge status={visit.testimonial.status} />
-          </Link>
-        ) : (
-          <span className="muted">Not yet</span>
-        )}
-      </td>
-      <td className="row-actions">
-        {!visit.testimonial && <Button onClick={onLink}>Get link</Button>}
-        {!visit.testimonial && (
-          <Button variant="ghost" disabled={loading} onClick={onDelete} aria-label={`Delete visit of ${visit.user.name}`}>
-            Delete
-          </Button>
-        )}
-      </td>
+      <td>{format.dateTime(visit.visitDate)}</td>
+      <td>{visit.amountRial != null ? format.toman(visit.amountRial) : <span className="muted">–</span>}</td>
+      {testimonials && <td>{visit.campaign?.name ?? <span className="muted">{t('common.none')}</span>}</td>}
+      {testimonials && (
+        <td>
+          {visit.testimonial ? (
+            <Link to={`/testimonials?status=ALL&open=${visit.testimonial.id}`}>
+              <StatusBadge status={visit.testimonial.status} />
+            </Link>
+          ) : (
+            <span className="muted">{t('visits.notYet')}</span>
+          )}
+        </td>
+      )}
+      {testimonials && (
+        <td className="row-actions">
+          {!visit.testimonial && <Button onClick={onLink}>{t('visits.getLink')}</Button>}
+          {!visit.testimonial && (
+            <Button
+              variant="ghost"
+              disabled={loading}
+              onClick={onDelete}
+              aria-label={t('visits.deleteLabel', { name: visit.user.name })}
+            >
+              {t('common.delete')}
+            </Button>
+          )}
+        </td>
+      )}
     </tr>
   );
 }
 
 function NewVisitDialog({ onClose, onCreated }: { onClose: () => void; onCreated: (visit: Visit) => void }) {
+  const { t } = useI18n();
   const { venue } = useCurrentVenue();
   const campaigns = useQuery(CAMPAIGNS, { variables: { venueId: venue.id, active: true, size: 100 } }).data?.campaigns;
   const [create, { loading, error }] = useMutation(CREATE_VISIT, { refetchQueries: ['Visits'] });
@@ -118,11 +143,11 @@ function NewVisitDialog({ onClose, onCreated }: { onClose: () => void; onCreated
     name: '',
     email: '',
     phone: '',
-    visitDate: toLocalInput(new Date().toISOString()),
+    visitDate: new Date().toISOString() as string | null,
     campaignId: '',
   });
 
-  function set<K extends keyof typeof form>(key: K, value: string) {
+  function set<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((f) => ({ ...f, [key]: value }));
   }
 
@@ -132,9 +157,13 @@ function NewVisitDialog({ onClose, onCreated }: { onClose: () => void; onCreated
       variables: {
         input: {
           venueId: venue.id,
-          visitDate: fromLocalInput(form.visitDate) ?? new Date().toISOString(),
+          visitDate: form.visitDate ?? new Date().toISOString(),
           campaignId: form.campaignId || null,
-          visitor: { name: form.name.trim(), email: form.email.trim(), phone: form.phone.trim() || null },
+          visitor: {
+            name: form.name.trim(),
+            email: form.email.trim(),
+            phone: toLatinDigits(form.phone.trim()) || null,
+          },
         },
       },
     }).catch(() => null);
@@ -142,28 +171,28 @@ function NewVisitDialog({ onClose, onCreated }: { onClose: () => void; onCreated
   }
 
   return (
-    <Dialog title="New visit" onClose={onClose}>
+    <Dialog title={t('visits.new')} onClose={onClose}>
       <form className="form" onSubmit={submit}>
-        <Field label="Visitor name">
+        <Field label={t('visits.visitorName')}>
           <input required value={form.name} onChange={(e) => set('name', e.target.value)} />
         </Field>
-        <Field label="Email" hint="A returning visitor with this email is reused.">
-          <input type="email" required value={form.email} onChange={(e) => set('email', e.target.value)} />
+        <Field label={t('visits.email')} hint={t('visits.emailHint')}>
+          <input type="email" dir="ltr" required value={form.email} onChange={(e) => set('email', e.target.value)} />
         </Field>
-        <Field label="Phone">
-          <input type="tel" value={form.phone} onChange={(e) => set('phone', e.target.value)} />
+        <Field label={t('visits.phone')}>
+          <input type="tel" dir="ltr" value={form.phone} onChange={(e) => set('phone', e.target.value)} />
         </Field>
-        <Field label="Visit time">
-          <input
-            type="datetime-local"
+        <Field label={t('visits.time')}>
+          <DateTimeInput
+            label={t('visits.time')}
             required
             value={form.visitDate}
-            onChange={(e) => set('visitDate', e.target.value)}
+            onChange={(iso) => set('visitDate', iso)}
           />
         </Field>
-        <Field label="Campaign" hint="Its message template sets the link's text and lifetime.">
+        <Field label={t('visits.campaign')} hint={t('visits.campaignHint')}>
           <select value={form.campaignId} onChange={(e) => set('campaignId', e.target.value)}>
-            <option value="">None</option>
+            <option value="">{t('common.none')}</option>
             {campaigns?.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -173,9 +202,9 @@ function NewVisitDialog({ onClose, onCreated }: { onClose: () => void; onCreated
         </Field>
         <ErrorBanner error={error} />
         <div className="form-actions">
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={onClose}>{t('common.cancel')}</Button>
           <Button variant="primary" type="submit" disabled={loading}>
-            Add visit
+            {t('visits.add')}
           </Button>
         </div>
       </form>
@@ -184,6 +213,8 @@ function NewVisitDialog({ onClose, onCreated }: { onClose: () => void; onCreated
 }
 
 function VisitLinkDialog({ visit, onClose }: { visit: Visit; onClose: () => void }) {
+  const { t } = useI18n();
+  const format = useFormat();
   const [issue, { data, loading, error }] = useMutation(ISSUE_VISIT_TOKEN);
   const [copied, setCopied] = useState(false);
 
@@ -201,24 +232,24 @@ function VisitLinkDialog({ visit, onClose }: { visit: Visit; onClose: () => void
   }
 
   return (
-    <Dialog title={`Link for ${visit.user.name}`} onClose={onClose}>
+    <Dialog title={t('visits.linkFor', { name: visit.user.name })} onClose={onClose}>
       <ErrorBanner error={error} />
       {loading || !token ? (
         !error && <Loading />
       ) : (
         <div className="form">
-          <p>Send this link to the visitor. It opens the Whenue app, where they record their testimonial.</p>
-          <Field label="Visitor link" hint={`Works until ${formatDateTime(token.expiresAt)}.`}>
-            <input readOnly value={link ?? ''} onFocus={(e) => e.target.select()} />
+          <p>{t('visits.linkIntro')}</p>
+          <Field label={t('visits.link')} hint={t('visits.linkUntil', { date: format.dateTime(token.expiresAt) })}>
+            <input readOnly dir="ltr" value={link ?? ''} onFocus={(e) => e.target.select()} />
           </Field>
           <div className="form-actions">
             {visit.user.email && link && (
-              <a className="btn btn-secondary" href={mailtoLink(visit, link)}>
-                Email it
+              <a className="btn btn-secondary" href={mailtoLink(visit, link, t)}>
+                {t('visits.emailIt')}
               </a>
             )}
             <Button variant="primary" onClick={copy}>
-              {copied ? 'Copied' : 'Copy link'}
+              {copied ? t('common.copied') : t('visits.copyLink')}
             </Button>
           </div>
         </div>
@@ -227,8 +258,8 @@ function VisitLinkDialog({ visit, onClose }: { visit: Visit; onClose: () => void
   );
 }
 
-function mailtoLink(visit: Visit, link: string) {
-  const subject = 'Tell us about your visit';
-  const body = `Hi ${visit.user.name},\n\nThanks for visiting! Record a short video about your visit here:\n${link}\n`;
+function mailtoLink(visit: Visit, link: string, t: Translate) {
+  const subject = t('visits.mailSubject');
+  const body = t('visits.mailBody', { name: visit.user.name, link });
   return `mailto:${visit.user.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }

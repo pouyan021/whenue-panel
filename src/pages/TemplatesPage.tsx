@@ -9,9 +9,14 @@ import {
   UPDATE_TEMPLATE,
   type NotificationTemplate,
 } from '../graphql/operations';
+import { useI18n } from '../i18n/i18n';
+import { useFormat } from '../lib/format';
+import { toLatinDigits } from '../lib/numbers';
 import { useCurrentVenue } from '../lib/venue';
 
 export function TemplatesPage() {
+  const { t } = useI18n();
+  const format = useFormat();
   const { venue } = useCurrentVenue();
   const { data, loading, error } = useQuery(TEMPLATES, { variables: { venueId: venue.id, size: 100 } });
   const [editing, setEditing] = useState<NotificationTemplate | 'new' | null>(null);
@@ -20,32 +25,31 @@ export function TemplatesPage() {
   return (
     <section>
       <header className="page-header">
-        <h1>Message templates</h1>
+        <h1>{t('templates.title')}</h1>
         <Button variant="primary" onClick={() => setEditing('new')}>
-          New template
+          {t('templates.new')}
         </Button>
       </header>
-      <p className="muted">
-        The message a visitor gets with their link. Campaigns use a template; it also sets how long links last.
-      </p>
+      <p className="muted">{t('templates.intro')}</p>
 
       <ErrorBanner error={error} />
       {loading && templates.length === 0 ? (
         <Loading />
       ) : templates.length === 0 ? (
-        <Empty>No templates yet. Create one before your first campaign.</Empty>
+        <Empty>{t('templates.empty')}</Empty>
       ) : (
         <ul className="card-list">
-          {templates.map((t) => (
-            <li key={t.id} className="card">
+          {templates.map((template) => (
+            <li key={template.id} className="card">
               <div className="row">
-                <h2>{t.title}</h2>
-                <Button onClick={() => setEditing(t)}>Edit</Button>
+                <h2>{template.title}</h2>
+                <Button onClick={() => setEditing(template)}>{t('common.edit')}</Button>
               </div>
-              <p>{t.message}</p>
+              <p>{template.message}</p>
               <p className="muted small">
-                Button: “{t.callToAction}”{t.incentive && <> · Incentive: {t.incentive}</>} · Links last{' '}
-                {t.linkExpiration ?? 72} hours
+                {t('templates.button', { text: template.callToAction })}
+                {template.incentive && <> · {t('templates.incentiveIs', { text: template.incentive })}</>} ·{' '}
+                {t('templates.linksLast', { hours: format.number(template.linkExpiration ?? 72) })}
               </p>
             </li>
           ))}
@@ -60,6 +64,7 @@ export function TemplatesPage() {
 }
 
 function TemplateDialog({ template, onClose }: { template: NotificationTemplate | null; onClose: () => void }) {
+  const { t } = useI18n();
   const { venue } = useCurrentVenue();
   const [create, creation] = useMutation(CREATE_TEMPLATE, { refetchQueries: ['NotificationTemplates'] });
   const [update, updating] = useMutation(UPDATE_TEMPLATE);
@@ -68,7 +73,7 @@ function TemplateDialog({ template, onClose }: { template: NotificationTemplate 
     title: template?.title ?? '',
     message: template?.message ?? '',
     incentive: template?.incentive ?? '',
-    callToAction: template?.callToAction ?? 'Record your video',
+    callToAction: template?.callToAction ?? t('templates.defaultButton'),
     linkExpiration: template?.linkExpiration?.toString() ?? '',
   });
   const busy = creation.loading || updating.loading || removal.loading;
@@ -84,7 +89,7 @@ function TemplateDialog({ template, onClose }: { template: NotificationTemplate 
       message: form.message.trim(),
       incentive: form.incentive.trim() || null,
       callToAction: form.callToAction.trim(),
-      linkExpiration: form.linkExpiration ? Number(form.linkExpiration) : null,
+      linkExpiration: form.linkExpiration ? Number(toLatinDigits(form.linkExpiration)) : null,
     };
     const ok = template
       ? await update({ variables: { id: template.id, input } }).catch(() => null)
@@ -93,30 +98,29 @@ function TemplateDialog({ template, onClose }: { template: NotificationTemplate 
   }
 
   async function onDelete() {
-    if (!template || !window.confirm(`Delete the template “${template.title}”?`)) return;
+    if (!template || !window.confirm(t('templates.deleteConfirm', { name: template.title }))) return;
     const result = await remove({ variables: { id: template.id } }).catch(() => null);
     if (result?.data?.deleteNotificationTemplate) onClose();
   }
 
   return (
-    <Dialog title={template ? 'Edit template' : 'New template'} onClose={onClose}>
+    <Dialog title={template ? t('templates.edit') : t('templates.new')} onClose={onClose}>
       <form className="form" onSubmit={submit}>
-        <Field label="Title">
+        <Field label={t('templates.name')}>
           <input required value={form.title} onChange={(e) => set('title', e.target.value)} />
         </Field>
-        <Field label="Message">
+        <Field label={t('templates.message')}>
           <textarea required rows={4} value={form.message} onChange={(e) => set('message', e.target.value)} />
         </Field>
-        <Field label="Incentive" hint="Optional, for example “10% off your next visit”.">
+        <Field label={t('templates.incentive')} hint={t('templates.incentiveHint')}>
           <input value={form.incentive} onChange={(e) => set('incentive', e.target.value)} />
         </Field>
-        <Field label="Button text">
+        <Field label={t('templates.buttonText')}>
           <input required value={form.callToAction} onChange={(e) => set('callToAction', e.target.value)} />
         </Field>
-        <Field label="Links last (hours)" hint="Leave empty for the default of 72 hours.">
+        <Field label={t('templates.linkHours')} hint={t('templates.linkHoursHint')}>
           <input
-            type="number"
-            min={1}
+            inputMode="numeric"
             value={form.linkExpiration}
             onChange={(e) => set('linkExpiration', e.target.value)}
           />
@@ -125,12 +129,12 @@ function TemplateDialog({ template, onClose }: { template: NotificationTemplate 
         <div className="form-actions">
           {template && (
             <Button variant="ghost" className="delete" disabled={busy} onClick={onDelete}>
-              Delete
+              {t('common.delete')}
             </Button>
           )}
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={onClose}>{t('common.cancel')}</Button>
           <Button variant="primary" type="submit" disabled={busy}>
-            Save
+            {t('common.save')}
           </Button>
         </div>
       </form>
