@@ -5,19 +5,21 @@ import { GraphQLError } from 'graphql';
 import { describe, expect, it } from 'vitest';
 
 import { LOGIN } from '../graphql/operations';
+import { I18nProvider, type Lang } from '../i18n/i18n';
 import { AuthProvider } from '../lib/auth';
 import { readSession } from '../lib/session';
-import { staff } from '../test/render';
 import { LoginPage } from './LoginPage';
 
-const variables = { email: 'staff@cafe.test', password: 'secret-password' };
+const variables = { email: 'staff@luna.test', password: 'secret-password' };
 
-function renderLogin(result: object) {
+function renderLogin(result: object, lang: Lang | null = 'en') {
   render(
     <MockedProvider mocks={[{ request: { query: LOGIN, variables }, result }]}>
-      <AuthProvider>
-        <LoginPage />
-      </AuthProvider>
+      <I18nProvider lang={lang ?? undefined}>
+        <AuthProvider>
+          <LoginPage />
+        </AuthProvider>
+      </I18nProvider>
     </MockedProvider>,
   );
 }
@@ -31,9 +33,7 @@ async function signIn() {
 
 describe('LoginPage', () => {
   it('stores the session after a successful login', async () => {
-    renderLogin({
-      data: { login: { token: 'jwt', expiresAt: '2099-01-01T00:00:00Z', staff: { ...staff, __typename: 'StaffAccount' } } },
-    });
+    renderLogin({ data: { login: { __typename: 'AuthPayload', token: 'jwt', expiresAt: '2099-01-01T00:00:00Z' } } });
 
     await signIn();
 
@@ -47,5 +47,17 @@ describe('LoginPage', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Invalid email or password');
     expect(readSession()).toBeNull();
+  });
+
+  it('is in Persian, right to left, until someone picks English', async () => {
+    renderLogin({ data: null }, null);
+
+    expect(screen.getByRole('button', { name: 'ورود' })).toBeInTheDocument();
+    expect(document.documentElement).toHaveAttribute('dir', 'rtl');
+
+    await userEvent.setup().click(screen.getByRole('button', { name: 'English' }));
+    expect(screen.getByRole('button', { name: 'Sign in' })).toBeInTheDocument();
+    expect(document.documentElement).toHaveAttribute('dir', 'ltr');
+    expect(localStorage.getItem('whenue.lang')).toBe('en');
   });
 });
