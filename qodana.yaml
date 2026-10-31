@@ -1,0 +1,13 @@
+# Qodana static analysis. Runs in CI from .github/workflows/qodana.yml.
+# Docs: https://www.jetbrains.com/help/qodana/qodana-yaml.html
+version: "1.0"
+linter: qodana-js
+profile:
+  name: qodana.recommended
+# Install dependencies so imports and types resolve during analysis.
+bootstrap: npm ci --no-audit --no-fund
+exclude:
+  - name: All
+    paths:
+      - dist
+      - coverage
