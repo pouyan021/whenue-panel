@@ -990,3 +990,66 @@ export const DELETE_WEBHOOK_ENDPOINT: TypedDocumentNode<{ deleteWebhookEndpoint:
     deleteWebhookEndpoint(id: $id)
   }
 `;
+
+export type ClubPeriod = {
+  newMembers: number;
+  visits: number;
+  activeMembers: number;
+  returningMembers: number;
+  revenueRial: number;
+  pointsEarned: number;
+  pointsRedeemed: number;
+  redemptions: number;
+  referralsQualified: number;
+};
+
+export type ClubStatsDay = { date: string; visits: number; newMembers: number; revenueRial: number };
+
+export type ClubStats = {
+  days: number;
+  from: string;
+  to: string;
+  membersTotal: number;
+  current: ClubPeriod;
+  previous: ClubPeriod;
+  daily: ClubStatsDay[];
+  topRewards: { rewardId: string; name: string; redemptions: number; points: number }[];
+};
+
+const CLUB_PERIOD_FIELDS = `
+  newMembers
+  visits
+  activeMembers
+  returningMembers
+  revenueRial
+  pointsEarned
+  pointsRedeemed
+  redemptions
+  referralsQualified
+`;
+
+/** The owner's dashboard; organization admins and admins only. */
+export const CLUB_STATS: TypedDocumentNode<{ clubStats: ClubStats }, { organizationId: string; days: number }> = gql`
+  query ClubStats($organizationId: ID!, $days: Int!) {
+    clubStats(organizationId: $organizationId, days: $days) {
+      days
+      from
+      to
+      membersTotal
+      current { ${CLUB_PERIOD_FIELDS} }
+      previous { ${CLUB_PERIOD_FIELDS} }
+      daily {
+        date
+        visits
+        newMembers
+        revenueRial
+      }
+      topRewards {
+        rewardId
+        name
+        redemptions
+        points
+      }
+    }
+  }
+`;
