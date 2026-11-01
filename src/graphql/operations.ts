@@ -542,10 +542,10 @@ const MEMBER_SUMMARY = gql`
 
 export const MEMBERS: TypedDocumentNode<
   { members: MemberSummary[] },
-  { organizationId: string; search?: string | null; page: number; size: number }
+  { organizationId: string; search?: string | null; joined?: boolean; page: number; size: number }
 > = gql`
-  query Members($organizationId: ID, $search: String, $page: Int, $size: Int) {
-    members(organizationId: $organizationId, search: $search, page: $page, size: $size) {
+  query Members($organizationId: ID, $search: String, $joined: Boolean, $page: Int, $size: Int) {
+    members(organizationId: $organizationId, search: $search, joined: $joined, page: $page, size: $size) {
       ...MemberSummary
     }
   }
@@ -1049,6 +1049,33 @@ export const CLUB_STATS: TypedDocumentNode<{ clubStats: ClubStats }, { organizat
         name
         redemptions
         points
+      }
+    }
+  }
+`;
+
+export type PersonImportInput = { name?: string | null; mobile?: string | null; externalRef?: string | null };
+
+export type PeopleImport = {
+  created: number;
+  updated: number;
+  invited: number;
+  failed: { row: number; message: string }[];
+};
+
+/** Organization admins: add a patient list; at most 2000 rows a call. */
+export const IMPORT_PEOPLE: TypedDocumentNode<
+  { importPeople: PeopleImport },
+  { organizationId: string; rows: PersonImportInput[]; invite: boolean }
+> = gql`
+  mutation ImportPeople($organizationId: ID, $rows: [PersonImportInput!]!, $invite: Boolean) {
+    importPeople(organizationId: $organizationId, rows: $rows, invite: $invite) {
+      created
+      updated
+      invited
+      failed {
+        row
+        message
       }
     }
   }
