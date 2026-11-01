@@ -1400,3 +1400,18 @@ code {
   max-width: 24rem;
   white-space: pre-wrap;
 }
+
+/* Crashes and connection */
+.crash {
+  max-width: 32rem;
+  margin: 2rem auto;
+}
+
+.offline-banner {
+  background: var(--pending-bg);
+  color: var(--pending-fg);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
