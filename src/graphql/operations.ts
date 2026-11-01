@@ -225,10 +225,7 @@ export const TESTIMONIAL: TypedDocumentNode<{ testimonial: Testimonial | null },
 
 export type TestimonialCounts = { pending: number; approved: number; rejected: number };
 
-export const TESTIMONIAL_COUNTS: TypedDocumentNode<
-  { testimonialCounts: TestimonialCounts },
-  { venueId: string }
-> = gql`
+export const TESTIMONIAL_COUNTS: TypedDocumentNode<{ testimonialCounts: TestimonialCounts }, { venueId: string }> = gql`
   query TestimonialCounts($venueId: ID!) {
     testimonialCounts(venueId: $venueId) {
       pending
@@ -510,6 +507,15 @@ export type Consent = {
 
 export type ConsentInput = { purpose: ConsentPurpose; granted: boolean; textVersion: string; text: string };
 
+const TIER_FIELDS = gql`
+  fragment TierFields on LoyaltyTier {
+    id
+    name
+    minPoints
+    bonusPercent
+  }
+`;
+
 const CONSENT_FIELDS = gql`
   fragment ConsentFields on Consent {
     purpose
@@ -526,6 +532,7 @@ export type MemberSummary = {
   mobile: string | null;
   memberSince: string | null;
   pointsBalance: number;
+  tier: { id: string; name: string } | null;
   createdAt: string;
 };
 
@@ -536,6 +543,10 @@ const MEMBER_SUMMARY = gql`
     mobile
     memberSince
     pointsBalance
+    tier {
+      id
+      name
+    }
     createdAt
   }
 `;
@@ -560,7 +571,9 @@ export type PointKind =
   | 'TESTIMONIAL'
   | 'REDEMPTION'
   | 'REDEMPTION_CANCELLED'
-  | 'ADJUSTMENT';
+  | 'ADJUSTMENT'
+  | 'TIER_BONUS'
+  | 'BIRTHDAY';
 
 export type PointEntry = { id: string; points: number; kind: PointKind; note: string | null; createdAt: string };
 
@@ -595,6 +608,10 @@ export type MemberDetail = MemberSummary & {
   redemptions: Redemption[];
   referralCode: string | null;
   referrals: { pending: number; qualified: number };
+  /** YYYY-MM-DD, Gregorian. */
+  birthDate: string | null;
+  tier: LoyaltyTier | null;
+  tierProgress: { earnedLastYear: number; pointsToNext: number; next: LoyaltyTier | null };
 };
 
 export const MEMBER: TypedDocumentNode<{ member: MemberDetail | null }, { id: string; size: number }> = gql`
@@ -623,11 +640,36 @@ export const MEMBER: TypedDocumentNode<{ member: MemberDetail | null }, { id: st
         pending
         qualified
       }
+      birthDate
+      tier {
+        ...TierFields
+      }
+      tierProgress {
+        earnedLastYear
+        pointsToNext
+        next {
+          ...TierFields
+        }
+      }
     }
   }
   ${MEMBER_SUMMARY}
   ${CONSENT_FIELDS}
   ${REDEMPTION_FIELDS}
+  ${TIER_FIELDS}
+`;
+
+export const UPDATE_MEMBER: TypedDocumentNode<
+  { updateMember: { id: string; name: string | null; birthDate: string | null } },
+  { id: string; input: { name?: string; birthDate?: string } }
+> = gql`
+  mutation UpdateMember($id: ID!, $input: UpdateMemberInput!) {
+    updateMember(id: $id, input: $input) {
+      id
+      name
+      birthDate
+    }
+  }
 `;
 
 export const INVITE_MEMBER: TypedDocumentNode<
@@ -722,7 +764,10 @@ export type LoyaltyProgram = {
   referrerPoints: number;
   friendPoints: number;
   testimonialPoints: number;
+  birthdayPoints: number;
 };
+
+export type LoyaltyTier = { id: string; name: string; minPoints: number; bonusPercent: number };
 
 export type Reward = {
   id: string;
@@ -750,11 +795,12 @@ const PROGRAM_FIELDS = gql`
     referrerPoints
     friendPoints
     testimonialPoints
+    birthdayPoints
   }
 `;
 
 export const LOYALTY: TypedDocumentNode<
-  { organization: { id: string; loyaltyProgram: LoyaltyProgram; rewards: Reward[] } | null },
+  { organization: { id: string; loyaltyProgram: LoyaltyProgram; rewards: Reward[]; tiers: LoyaltyTier[] } | null },
   { organizationId: string; includeInactive: boolean }
 > = gql`
   query Loyalty($organizationId: ID!, $includeInactive: Boolean) {
@@ -766,10 +812,14 @@ export const LOYALTY: TypedDocumentNode<
       rewards(includeInactive: $includeInactive) {
         ...RewardFields
       }
+      tiers {
+        ...TierFields
+      }
     }
   }
   ${PROGRAM_FIELDS}
   ${REWARD_FIELDS}
+  ${TIER_FIELDS}
 `;
 
 export const UPDATE_LOYALTY_PROGRAM: TypedDocumentNode<
@@ -808,6 +858,38 @@ export const UPDATE_REWARD: TypedDocumentNode<
     }
   }
   ${REWARD_FIELDS}
+`;
+
+export type TierInput = { name: string; minPoints: number; bonusPercent: number };
+
+export const CREATE_LOYALTY_TIER: TypedDocumentNode<
+  { createLoyaltyTier: LoyaltyTier },
+  { input: TierInput & { organizationId: string } }
+> = gql`
+  mutation CreateLoyaltyTier($input: CreateLoyaltyTierInput!) {
+    createLoyaltyTier(input: $input) {
+      ...TierFields
+    }
+  }
+  ${TIER_FIELDS}
+`;
+
+export const UPDATE_LOYALTY_TIER: TypedDocumentNode<
+  { updateLoyaltyTier: LoyaltyTier },
+  { id: string; input: Partial<TierInput> }
+> = gql`
+  mutation UpdateLoyaltyTier($id: ID!, $input: UpdateLoyaltyTierInput!) {
+    updateLoyaltyTier(id: $id, input: $input) {
+      ...TierFields
+    }
+  }
+  ${TIER_FIELDS}
+`;
+
+export const DELETE_LOYALTY_TIER: TypedDocumentNode<{ deleteLoyaltyTier: boolean }, { id: string }> = gql`
+  mutation DeleteLoyaltyTier($id: ID!) {
+    deleteLoyaltyTier(id: $id)
+  }
 `;
 
 // Club settings

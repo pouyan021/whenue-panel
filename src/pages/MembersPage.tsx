@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 
 import { ImportMembersDialog } from '../components/ImportMembersDialog';
-import { InviteMemberDialog, Mobile, memberName } from '../components/members';
+import { InviteMemberDialog, Mobile, memberName, TierBadge } from '../components/members';
 import { Button, Empty, ErrorBanner, Loading } from '../components/ui';
 import { MEMBERS, type MemberSummary } from '../graphql/operations';
 import { useI18n } from '../i18n/i18n';
@@ -91,6 +91,7 @@ export function MembersPage() {
               <th>{t('member.name')}</th>
               <th>{t('member.mobile')}</th>
               {joined && <th>{t('member.balance')}</th>}
+              {joined && <th>{t('members.tier')}</th>}
               <th>{joined ? t('member.since') : t('members.added')}</th>
             </tr>
           </thead>
@@ -102,9 +103,14 @@ export function MembersPage() {
                 </td>
                 <td>{m.mobile ? <Mobile value={m.mobile} /> : <span className="muted">–</span>}</td>
                 {joined && <td>{format.points(m.pointsBalance)}</td>}
+                {joined && <td>{m.tier ? <TierBadge name={m.tier.name} /> : <span className="muted">–</span>}</td>}
                 <td>
                   {joined ? (
-                    m.memberSince ? format.date(m.memberSince) : <span className="muted">–</span>
+                    m.memberSince ? (
+                      format.date(m.memberSince)
+                    ) : (
+                      <span className="muted">–</span>
+                    )
                   ) : (
                     format.date(m.createdAt)
                   )}
@@ -159,11 +165,17 @@ function ExportButton({ joined }: { joined: boolean }) {
         if (rows.length < EXPORT_PAGE) break;
       }
       const header = joined
-        ? [t('member.name'), t('member.mobile'), t('member.balance'), t('member.since')]
+        ? [t('member.name'), t('member.mobile'), t('member.balance'), t('members.tier'), t('member.since')]
         : [t('member.name'), t('member.mobile'), t('members.added')];
       const rows = all.map((m) =>
         joined
-          ? [m.name, m.mobile ? nationalMobile(m.mobile) : '', m.pointsBalance, m.memberSince ? format.date(m.memberSince) : '']
+          ? [
+              m.name,
+              m.mobile ? nationalMobile(m.mobile) : '',
+              m.pointsBalance,
+              m.tier?.name ?? '',
+              m.memberSince ? format.date(m.memberSince) : '',
+            ]
           : [m.name, m.mobile ? nationalMobile(m.mobile) : '', format.date(m.createdAt)],
       );
       const day = new Date().toISOString().slice(0, 10);

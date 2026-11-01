@@ -16,12 +16,15 @@ export function makeFormat(lang: Lang, t: Translate, timeZone?: string) {
   const locale = lang === 'fa' ? 'fa-IR' : 'en-GB';
   const dateTime = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone });
   const date = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone });
+  const day = new Intl.DateTimeFormat(locale, { dateStyle: 'long', timeZone: 'UTC' });
   const number = new Intl.NumberFormat(locale);
   const compact = new Intl.NumberFormat(locale, { notation: 'compact', maximumFractionDigits: 1 });
   const percent = new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 0 });
   return {
     dateTime: (iso: string) => dateTime.format(new Date(iso)),
     date: (iso: string) => date.format(new Date(iso)),
+    /** A calendar date (YYYY-MM-DD) with no time zone, such as a birthday. */
+    day: (ymd: string) => day.format(new Date(`${ymd}T00:00:00Z`)),
     number: (n: number) => number.format(n),
     /** 0.42 as 42% (۴۲٪ in Persian). */
     percent: (ratio: number) => percent.format(ratio),
@@ -47,6 +50,9 @@ const KNOWN_ERRORS: [RegExp, MessageKey][] = [
   [/Nobody in this segment can get an SMS/, 'error.smsNobody'],
   [/A campaign can go to at most/, 'error.smsTooMany'],
   [/must be between 1 and 3650/, 'error.smsDays'],
+  [/Another tier already starts at/, 'error.tierDuplicate'],
+  [/A club can have at most \d+ tiers/, 'tiers.max'],
+  [/birthDate is not a plausible/, 'error.birthDate'],
   [/Failed to fetch|NetworkError|Load failed/i, 'error.network'],
 ];
 

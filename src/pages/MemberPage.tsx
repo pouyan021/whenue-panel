@@ -2,13 +2,15 @@ import { useMutation, useQuery } from '@apollo/client/react';
 import { useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router';
 
-import { MemberStatus, Mobile, memberName } from '../components/members';
+import { BirthDateInput } from '../components/BirthDateInput';
+import { MemberStatus, Mobile, memberName, TierBadge } from '../components/members';
 import { Button, Dialog, Empty, ErrorBanner, Field, Loading, Stat } from '../components/ui';
 import {
   ADJUST_POINTS,
   CANCEL_REDEMPTION,
   MEMBER,
   RECORD_MEMBER_CONSENTS,
+  UPDATE_MEMBER,
   type Consent,
   type ConsentPurpose,
   type MemberDetail,
@@ -40,6 +42,8 @@ export const POINT_KIND: Record<PointKind, MessageKey> = {
   REDEMPTION: 'points.kind.redemption',
   REDEMPTION_CANCELLED: 'points.kind.redemptionCancelled',
   ADJUSTMENT: 'points.kind.adjustment',
+  TIER_BONUS: 'points.kind.tierBonus',
+  BIRTHDAY: 'points.kind.birthday',
 };
 
 const CONSENT_METHOD: Record<Consent['method'], MessageKey> = {
@@ -88,6 +92,7 @@ function MemberDetails({
   const { canManage, hasModule } = useCurrentVenue();
   const [adjusting, setAdjusting] = useState(false);
   const [recording, setRecording] = useState(false);
+  const [birthday, setBirthday] = useState(false);
   const more = member.pointEntries.length === size || member.redemptions.length === size;
 
   return (
@@ -115,6 +120,15 @@ function MemberDetails({
 
       <div className="stats">
         <Stat label={t('member.balance')} value={format.points(member.pointsBalance)} tone="accent" />
+        {member.memberSince && <TierStat member={member} />}
+        <Stat
+          label={t('member.birthday')}
+          value={
+            <button type="button" className="link-button" onClick={() => setBirthday(true)}>
+              {member.birthDate ? format.day(member.birthDate) : t('member.noBirthday')}
+            </button>
+          }
+        />
         <Stat
           label={member.memberSince ? t('member.since') : t('member.invitedOn')}
           value={format.date(member.memberSince ?? member.createdAt)}
@@ -210,7 +224,69 @@ function MemberDetails({
 
       {adjusting && <AdjustDialog member={member} onClose={() => setAdjusting(false)} />}
       {recording && <PaperConsentDialog member={member} onClose={() => setRecording(false)} />}
+      {birthday && <BirthdayDialog member={member} onClose={() => setBirthday(false)} />}
     </>
+  );
+}
+
+/** The member's tier and how far the next one is, by points earned in the last 12 months. */
+function TierStat({ member }: { member: MemberDetail }) {
+  const { t } = useI18n();
+  const format = useFormat();
+  const { earnedLastYear, next, pointsToNext } = member.tierProgress;
+  if (!member.tier && !next) return null;
+  const from = member.tier?.minPoints ?? 0;
+  const progress = next ? Math.min(1, (earnedLastYear - from) / Math.max(1, next.minPoints - from)) : 1;
+  return (
+    <div className="stat stat-tier">
+      <span className="stat-label">{t('member.tier')}</span>
+      <span className="stat-value">
+        {member.tier ? <TierBadge name={member.tier.name} /> : <span className="muted">{t('member.noTier')}</span>}
+      </span>
+      <span
+        className="tier-progress"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(progress * 100)}
+      >
+        <span style={{ width: `${progress * 100}%` }} />
+      </span>
+      <span className="muted small">
+        {next ? t('member.tierNext', { points: format.points(pointsToNext), tier: next.name }) : t('member.tierTop')}
+        {' · '}
+        {t('member.earnedLastYear', { points: format.number(earnedLastYear) })}
+      </span>
+    </div>
+  );
+}
+
+function BirthdayDialog({ member, onClose }: { member: MemberDetail; onClose: () => void }) {
+  const { t } = useI18n();
+  const [update, { loading, error }] = useMutation(UPDATE_MEMBER, { refetchQueries: REFETCH });
+  const [birthDate, setBirthDate] = useState(member.birthDate ?? '');
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    const result = await update({ variables: { id: member.id, input: { birthDate } } }).catch(() => null);
+    if (result?.data) onClose();
+  }
+
+  return (
+    <Dialog title={t('member.editBirthday')} onClose={onClose}>
+      <form className="form" onSubmit={submit}>
+        <Field label={t('member.birthDate')}>
+          <BirthDateInput value={birthDate} onChange={setBirthDate} label={t('member.birthDate')} />
+        </Field>
+        <ErrorBanner error={error} />
+        <div className="form-actions">
+          <Button onClick={onClose}>{t('common.cancel')}</Button>
+          <Button variant="primary" type="submit" disabled={loading}>
+            {t('common.save')}
+          </Button>
+        </div>
+      </form>
+    </Dialog>
   );
 }
 
@@ -220,7 +296,8 @@ function RedemptionRow({ redemption: r }: { redemption: Redemption }) {
   const [cancel, { loading, error }] = useMutation(CANCEL_REDEMPTION, { refetchQueries: REFETCH });
 
   function onCancel() {
-    if (!window.confirm(t('redemptions.cancelConfirm', { reward: r.reward.name, points: format.points(r.points) }))) return;
+    if (!window.confirm(t('redemptions.cancelConfirm', { reward: r.reward.name, points: format.points(r.points) })))
+      return;
     void cancel({ variables: { id: r.id } }).catch(() => undefined);
   }
 
@@ -293,7 +370,9 @@ function AdjustDialog({ member, onClose }: { member: MemberDetail; onClose: () =
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (invalid) return;
-    const result = await adjust({ variables: { memberId: member.id, points: value, note: note.trim() } }).catch(() => null);
+    const result = await adjust({ variables: { memberId: member.id, points: value, note: note.trim() } }).catch(
+      () => null,
+    );
     if (result?.data) onClose();
   }
 
@@ -301,7 +380,14 @@ function AdjustDialog({ member, onClose }: { member: MemberDetail; onClose: () =
     <Dialog title={t('points.adjust')} onClose={onClose}>
       <form className="form" onSubmit={submit}>
         <Field label={t('points.adjustAmount')} hint={invalid ? t('points.adjustInvalid') : t('points.adjustHint')}>
-          <input required dir="ltr" inputMode="numeric" value={points} onChange={(e) => setPoints(e.target.value)} aria-invalid={invalid} />
+          <input
+            required
+            dir="ltr"
+            inputMode="numeric"
+            value={points}
+            onChange={(e) => setPoints(e.target.value)}
+            aria-invalid={invalid}
+          />
         </Field>
         <Field label={t('points.adjustNote')}>
           <input required value={note} onChange={(e) => setNote(e.target.value)} />

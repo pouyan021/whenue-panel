@@ -2,7 +2,7 @@ import { useMutation, useQuery } from '@apollo/client/react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router';
 
-import { InviteMemberDialog, MemberStatus, Mobile, memberName } from '../components/members';
+import { InviteMemberDialog, MemberStatus, Mobile, memberName, TierBadge } from '../components/members';
 import { ScanDialog } from '../components/ScanDialog';
 import { Button, Empty, ErrorBanner, Field, Loading, Stat } from '../components/ui';
 import {
@@ -37,11 +37,7 @@ export function CheckInPage() {
       </header>
       <div className="desk">
         <MemberLookup onPick={(id) => setParams({ member: id })} />
-        {memberId ? (
-          <DeskMember key={memberId} id={memberId} />
-        ) : (
-          <Empty>{t('checkIn.pickHint')}</Empty>
-        )}
+        {memberId ? <DeskMember key={memberId} id={memberId} /> : <Empty>{t('checkIn.pickHint')}</Empty>}
       </div>
     </section>
   );
@@ -154,6 +150,7 @@ function DeskMember({ id }: { id: string }) {
         </div>
         <div className="stats">
           <Stat label={t('member.balance')} value={format.points(member.pointsBalance)} tone="accent" />
+          {member.tier && <Stat label={t('member.tier')} value={<TierBadge name={member.tier.name} />} />}
           {member.memberSince && <Stat label={t('member.since')} value={format.date(member.memberSince)} />}
         </div>
         <Link to={`/members/${member.id}`}>{t('checkIn.openMember')}</Link>
@@ -184,7 +181,9 @@ function CheckInForm({ member }: { member: MemberDetail }) {
     event.preventDefault();
     if (invalid) return;
     const result = await checkIn({
-      variables: { input: { venueId: venue.id, memberId: member.id, amountRial: toman == null ? null : tomanToRial(toman) } },
+      variables: {
+        input: { venueId: venue.id, memberId: member.id, amountRial: toman == null ? null : tomanToRial(toman) },
+      },
     }).catch(() => null);
     if (result?.data) {
       setDone(result.data.checkIn);
@@ -196,7 +195,13 @@ function CheckInForm({ member }: { member: MemberDetail }) {
     <form className="card form" onSubmit={submit}>
       <h2>{t('checkIn.visitTitle')}</h2>
       <Field label={t('checkIn.amount')} hint={invalid ? t('checkIn.amountInvalid') : t('checkIn.amountHint')}>
-        <input inputMode="numeric" autoComplete="off" value={amount} onChange={(e) => setAmount(e.target.value)} aria-invalid={invalid} />
+        <input
+          inputMode="numeric"
+          autoComplete="off"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          aria-invalid={invalid}
+        />
       </Field>
       {toman != null && toman > 0 && <p className="muted small">{format.toman(tomanToRial(toman))}</p>}
       <ErrorBanner error={error} />
@@ -225,10 +230,11 @@ function RedeemList({ member }: { member: MemberDetail }) {
 
   async function onRedeem(reward: Reward) {
     const name = memberName(member, t('member.noName'));
-    if (!window.confirm(t('redeem.confirm', { reward: reward.name, name, points: format.points(reward.pointsCost) }))) return;
-    const result = await redeem({ variables: { input: { venueId: venue.id, memberId: member.id, rewardId: reward.id } } }).catch(
-      () => null,
-    );
+    if (!window.confirm(t('redeem.confirm', { reward: reward.name, name, points: format.points(reward.pointsCost) })))
+      return;
+    const result = await redeem({
+      variables: { input: { venueId: venue.id, memberId: member.id, rewardId: reward.id } },
+    }).catch(() => null);
     if (result?.data) setDone(result.data.redeemReward);
   }
 

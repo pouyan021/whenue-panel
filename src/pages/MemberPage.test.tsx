@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { Route, Routes } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 
-import { MEMBER, RECORD_MEMBER_CONSENTS, type ConsentInput } from '../graphql/operations';
+import { MEMBER, RECORD_MEMBER_CONSENTS, UPDATE_MEMBER, type ConsentInput } from '../graphql/operations';
 import { config } from '../lib/config';
 import { PAPER_CONSENT_VERSION, paperConsentText } from '../lib/consents';
 import { orgAdmin, renderPage } from '../test/render';
@@ -16,6 +16,7 @@ const member = {
   mobile: '+989121234567',
   memberSince: '2026-09-01T08:00:00Z',
   pointsBalance: 80,
+  tier: { __typename: 'LoyaltyTier', id: '3', name: 'Silver', minPoints: 50, bonusPercent: 10 },
   createdAt: '2026-09-01T08:00:00Z',
   email: null,
   consents: [
@@ -30,12 +31,26 @@ const member = {
   ],
   consentHistory: [],
   pointEntries: [
-    { __typename: 'PointEntry', id: '61', points: 50, kind: 'REFERRAL_FRIEND', note: null, createdAt: '2026-09-03T08:00:00Z' },
+    {
+      __typename: 'PointEntry',
+      id: '61',
+      points: 50,
+      kind: 'REFERRAL_FRIEND',
+      note: null,
+      createdAt: '2026-09-03T08:00:00Z',
+    },
     { __typename: 'PointEntry', id: '62', points: 30, kind: 'SPEND', note: null, createdAt: '2026-09-03T08:00:00Z' },
   ],
   redemptions: [],
   referralCode: 'SARA21',
   referrals: { __typename: 'ReferralCounts', pending: 2, qualified: 1 },
+  birthDate: null,
+  tierProgress: {
+    __typename: 'TierProgress',
+    earnedLastYear: 80,
+    pointsToNext: 420,
+    next: { __typename: 'LoyaltyTier', id: '4', name: 'Gold', minPoints: 500, bonusPercent: 25 },
+  },
 };
 
 const query = {
@@ -67,6 +82,32 @@ describe('MemberPage', () => {
     expect(within(membership).getByText('Agreed')).toBeInTheDocument();
     expect(within(membership).getByText(/In the app/)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Correct points' })).toBeInTheDocument();
+  });
+
+  it('shows the tier and how far the next one is', async () => {
+    renderMember([query]);
+
+    expect(await screen.findByText('Silver')).toBeInTheDocument();
+    expect(screen.getByText(/420 points more to Gold/)).toBeInTheDocument();
+    expect(screen.getByText(/80 earned in the last 12 months/)).toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '7');
+  });
+
+  it('enters the birth date', async () => {
+    const user = userEvent.setup();
+    const saved = vi.fn(() => ({
+      data: { updateMember: { __typename: 'Member', id: '21', name: 'Sara Ahmadi', birthDate: '1990-05-17' } },
+    }));
+    renderMember([
+      query,
+      { request: { query: UPDATE_MEMBER, variables: { id: '21', input: { birthDate: '1990-05-17' } } }, result: saved },
+    ]);
+
+    await user.click(await screen.findByRole('button', { name: 'Not entered' }));
+    const dialog = screen.getByRole('dialog');
+    await user.type(within(dialog).getByLabelText('Date of birth'), '1990-05-17');
+    await user.click(within(dialog).getByRole('button', { name: 'Save' }));
+    await vi.waitFor(() => expect(saved).toHaveBeenCalled());
   });
 
   it('records a paper consent with the wording the member signed', async () => {

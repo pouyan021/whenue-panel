@@ -1415,3 +1415,32 @@ code {
   margin-bottom: 1rem;
   font-weight: 500;
 }
+
+.badge-tier {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent);
+}
+
+.stat-tier {
+  min-width: 14rem;
+}
+
+.tier-progress {
+  display: block;
+  height: 0.35rem;
+  border-radius: 1rem;
+  background: var(--border);
+  overflow: hidden;
+  margin-block: 0.25rem;
+}
+
+.tier-progress > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+.tier-table td:nth-child(2),
+.tier-table td:nth-child(3) {
+  white-space: nowrap;
+}
