@@ -1307,3 +1307,30 @@ code {
   border-radius: 14px;
   box-shadow: 0 0 0 999px rgb(0 0 0 / 35%);
 }
+
+/* Members: import and export */
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.import-mapping {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem;
+}
+
+.issue-title {
+  font-size: 0.95rem;
+  margin: 0 0 0.4rem;
+}
+
+.issue-list {
+  margin: 0;
+  padding-inline-start: 1.1rem;
+  max-height: 220px;
+  overflow: auto;
+  font-size: 0.9rem;
+}
