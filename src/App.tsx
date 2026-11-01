@@ -13,6 +13,7 @@ import { LoginPage } from './pages/LoginPage';
 import { MemberPage } from './pages/MemberPage';
 import { MembersPage } from './pages/MembersPage';
 import { RewardsPage } from './pages/RewardsPage';
+import { SmsPage } from './pages/SmsPage';
 import { TemplatesPage } from './pages/TemplatesPage';
 import { TestimonialsPage } from './pages/TestimonialsPage';
 import { VenuePage } from './pages/VenuePage';
@@ -29,6 +30,7 @@ export const routes = [
       { path: 'members', element: <MembersPage /> },
       { path: 'members/:id', element: <MemberPage /> },
       { path: 'rewards', element: <RewardsPage /> },
+      { path: 'sms', element: <ManagersOnly><SmsPage /></ManagersOnly> },
       { path: 'testimonials', element: <TestimonialsPage /> },
       { path: 'visits', element: <VisitsPage /> },
       { path: 'campaigns', element: <CampaignsPage /> },
