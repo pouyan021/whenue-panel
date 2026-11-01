@@ -1,9 +1,12 @@
+import type React from 'react';
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router';
 
 import { Shell } from './components/Shell';
 import { useAuth } from './lib/auth';
+import { useCurrentVenue } from './lib/venue';
 import { CampaignsPage } from './pages/CampaignsPage';
 import { CheckInPage } from './pages/CheckInPage';
+import { DashboardPage } from './pages/DashboardPage';
 import { ClubPage } from './pages/ClubPage';
 import { IntegrationsPage } from './pages/IntegrationsPage';
 import { LoginPage } from './pages/LoginPage';
@@ -20,7 +23,8 @@ export const routes = [
     path: '/',
     element: <Shell />,
     children: [
-      { index: true, element: <Navigate to="/check-in" replace /> },
+      { index: true, element: <Home /> },
+      { path: 'dashboard', element: <ManagersOnly><DashboardPage /></ManagersOnly> },
       { path: 'check-in', element: <CheckInPage /> },
       { path: 'members', element: <MembersPage /> },
       { path: 'members/:id', element: <MemberPage /> },
@@ -37,6 +41,17 @@ export const routes = [
     ],
   },
 ];
+
+/** Owners land on the dashboard; reception lands on check-in. */
+function Home() {
+  const { canManage } = useCurrentVenue();
+  return <Navigate to={canManage ? '/dashboard' : '/check-in'} replace />;
+}
+
+function ManagersOnly({ children }: { children: React.ReactNode }) {
+  const { canManage } = useCurrentVenue();
+  return canManage ? children : <Navigate to="/check-in" replace />;
+}
 
 const router = createBrowserRouter(routes);
 

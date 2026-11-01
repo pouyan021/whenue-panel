@@ -17,12 +17,18 @@ export function makeFormat(lang: Lang, t: Translate, timeZone?: string) {
   const dateTime = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short', timeZone });
   const date = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone });
   const number = new Intl.NumberFormat(locale);
+  const compact = new Intl.NumberFormat(locale, { notation: 'compact', maximumFractionDigits: 1 });
+  const percent = new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 0 });
   return {
     dateTime: (iso: string) => dateTime.format(new Date(iso)),
     date: (iso: string) => date.format(new Date(iso)),
     number: (n: number) => number.format(n),
+    /** 0.42 as 42% (۴۲٪ in Persian). */
+    percent: (ratio: number) => percent.format(ratio),
     /** A Rial amount, shown in Toman. */
     toman: (rial: number) => t('money.toman', { amount: number.format(rialToToman(rial)) }),
+    /** A Rial amount in Toman, shortened: 1.8 billion Toman. */
+    tomanShort: (rial: number) => t('money.toman', { amount: compact.format(rialToToman(rial)) }),
     points: (n: number) => t('money.points', { points: number.format(n) }),
   };
 }

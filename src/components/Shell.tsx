@@ -112,6 +112,7 @@ function Nav() {
 
   return (
     <nav className="nav">
+      {canManage && <NavLink to="/dashboard" className="nav-home">{t('nav.dashboard')}</NavLink>}
       <NavSection label={t('nav.section.desk')}>
         <NavLink to="/check-in">{t('nav.checkIn')}</NavLink>
         <NavLink to="/members">{t('nav.members')}</NavLink>

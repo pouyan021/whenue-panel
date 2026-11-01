@@ -3,6 +3,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router';
 
 import { InviteMemberDialog, MemberStatus, Mobile, memberName } from '../components/members';
+import { ScanDialog } from '../components/ScanDialog';
 import { Button, Empty, ErrorBanner, Field, Loading, Stat } from '../components/ui';
 import {
   CHECK_IN,
@@ -55,12 +56,13 @@ function useDebounced(value: string, ms: number) {
   return debounced;
 }
 
-/** Search by name or mobile, or scan the member's card: a USB scanner types its code here. */
+/** Search by name or mobile, or scan the member's card: with the camera, or a USB scanner typing its code here. */
 function MemberLookup({ onPick }: { onPick: (id: string) => void }) {
   const { t } = useI18n();
   const { organization } = useCurrentVenue();
   const [text, setText] = useState('');
   const [inviting, setInviting] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const search = useDebounced(text.trim(), 250);
   const scanned = memberIdFromCode(text);
   const { data, loading, error } = useQuery(MEMBERS, {
@@ -102,7 +104,19 @@ function MemberLookup({ onPick }: { onPick: (id: string) => void }) {
           ))}
         </ul>
       )}
-      <Button onClick={() => setInviting(true)}>{t('checkIn.newMember')}</Button>
+      <div className="form-actions lookup-actions">
+        <Button onClick={() => setScanning(true)}>{t('scan.open')}</Button>
+        <Button onClick={() => setInviting(true)}>{t('checkIn.newMember')}</Button>
+      </div>
+      {scanning && (
+        <ScanDialog
+          onClose={() => setScanning(false)}
+          onScanned={(id) => {
+            setScanning(false);
+            onPick(id);
+          }}
+        />
+      )}
       {inviting && (
         <InviteMemberDialog
           initialMobile={/^[\d۰-۹+ ]+$/.test(text) ? text : ''}
