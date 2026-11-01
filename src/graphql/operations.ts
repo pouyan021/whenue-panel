@@ -1080,3 +1080,88 @@ export const IMPORT_PEOPLE: TypedDocumentNode<
     }
   }
 `;
+
+export type SegmentAudience = 'MEMBERS' | 'NOT_JOINED';
+
+export type MemberSegment = {
+  audience: SegmentAudience;
+  inactiveDays: number | null;
+  joinedWithinDays: number | null;
+  minPoints: number | null;
+  neverRedeemed: boolean;
+};
+
+export type SegmentPreview = {
+  matching: number;
+  reachable: number;
+  sample: { id: string; name: string | null }[];
+};
+
+export type SmsCampaign = {
+  id: string;
+  text: string;
+  segment: MemberSegment;
+  recipients: number;
+  sent: number;
+  failed: number;
+  status: 'SENDING' | 'DONE';
+  createdAt: string;
+  finishedAt: string | null;
+};
+
+const SMS_CAMPAIGN = gql`
+  fragment SmsCampaignFields on SmsCampaign {
+    id
+    text
+    segment {
+      audience
+      inactiveDays
+      joinedWithinDays
+      minPoints
+      neverRedeemed
+    }
+    recipients
+    sent
+    failed
+    status
+    createdAt
+    finishedAt
+  }
+`;
+
+export const SEGMENT_PREVIEW: TypedDocumentNode<
+  { segmentPreview: SegmentPreview },
+  { organizationId: string; segment: MemberSegment }
+> = gql`
+  query SegmentPreview($organizationId: ID, $segment: MemberSegmentInput!) {
+    segmentPreview(organizationId: $organizationId, segment: $segment) {
+      matching
+      reachable
+      sample {
+        id
+        name
+      }
+    }
+  }
+`;
+
+export const SMS_CAMPAIGNS: TypedDocumentNode<{ smsCampaigns: SmsCampaign[] }, { organizationId: string }> = gql`
+  query SmsCampaigns($organizationId: ID) {
+    smsCampaigns(organizationId: $organizationId) {
+      ...SmsCampaignFields
+    }
+  }
+  ${SMS_CAMPAIGN}
+`;
+
+export const SEND_SMS_CAMPAIGN: TypedDocumentNode<
+  { sendSmsCampaign: SmsCampaign },
+  { organizationId: string; segment: MemberSegment; text: string | null }
+> = gql`
+  mutation SendSmsCampaign($organizationId: ID, $segment: MemberSegmentInput!, $text: String) {
+    sendSmsCampaign(organizationId: $organizationId, segment: $segment, text: $text) {
+      ...SmsCampaignFields
+    }
+  }
+  ${SMS_CAMPAIGN}
+`;

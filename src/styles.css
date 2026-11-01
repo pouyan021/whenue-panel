@@ -1334,3 +1334,69 @@ code {
   overflow: auto;
   font-size: 0.9rem;
 }
+
+/* SMS campaigns */
+.sms-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 900px) {
+  .sms-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sms-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.sms-preview p {
+  margin: 0;
+}
+
+.sms-preview {
+  position: sticky;
+  top: 1rem;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.chip {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: inherit;
+  border-radius: 999px;
+  padding: 0.35rem 0.8rem;
+  font: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.chip:hover {
+  border-color: var(--accent);
+}
+
+.sms-quote {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border-inline-start: 3px solid var(--accent);
+  background: var(--surface-2);
+  white-space: pre-wrap;
+}
+
+.sms-text-cell {
+  min-width: 14rem;
+  max-width: 24rem;
+  white-space: pre-wrap;
+}

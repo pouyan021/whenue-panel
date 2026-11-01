@@ -120,6 +120,7 @@ function Nav() {
       </NavSection>
       <NavSection label={t('nav.section.club')}>
         <NavLink to="/rewards">{t('nav.rewards')}</NavLink>
+        {canManage && <NavLink to="/sms">{t('nav.sms')}</NavLink>}
         {testimonials && <TestimonialsLink venueId={venue.id} />}
         {testimonials && <NavLink to="/campaigns">{t('nav.campaigns')}</NavLink>}
         {testimonials && <NavLink to="/templates">{t('nav.templates')}</NavLink>}

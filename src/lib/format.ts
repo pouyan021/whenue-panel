@@ -44,6 +44,9 @@ const KNOWN_ERRORS: [RegExp, MessageKey][] = [
   [/^Not enough points/, 'error.notEnoughPoints'],
   [/^Not a valid mobile number/, 'error.invalidMobile'],
   [/^CONSENT_REQUIRED/, 'error.consentRequired'],
+  [/Nobody in this segment can get an SMS/, 'error.smsNobody'],
+  [/A campaign can go to at most/, 'error.smsTooMany'],
+  [/must be between 1 and 3650/, 'error.smsDays'],
   [/Failed to fetch|NetworkError|Load failed/i, 'error.network'],
 ];
 
