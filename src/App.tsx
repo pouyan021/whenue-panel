@@ -1,6 +1,7 @@
 import type React from 'react';
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router';
 
+import { RouteError } from './components/RouteError';
 import { Shell } from './components/Shell';
 import { useAuth } from './lib/auth';
 import { useCurrentVenue } from './lib/venue';
@@ -23,23 +24,31 @@ export const routes = [
   {
     path: '/',
     element: <Shell />,
+    // Without a boundary a crash in the frame itself blanks the page
+    errorElement: <main className="centered"><RouteError /></main>,
     children: [
-      { index: true, element: <Home /> },
-      { path: 'dashboard', element: <ManagersOnly><DashboardPage /></ManagersOnly> },
-      { path: 'check-in', element: <CheckInPage /> },
-      { path: 'members', element: <MembersPage /> },
-      { path: 'members/:id', element: <MemberPage /> },
-      { path: 'rewards', element: <RewardsPage /> },
-      { path: 'sms', element: <ManagersOnly><SmsPage /></ManagersOnly> },
-      { path: 'testimonials', element: <TestimonialsPage /> },
-      { path: 'visits', element: <VisitsPage /> },
-      { path: 'campaigns', element: <CampaignsPage /> },
-      { path: 'templates', element: <TemplatesPage /> },
-      { path: 'branch', element: <VenuePage /> },
-      { path: 'club', element: <ClubPage /> },
-      { path: 'integrations', element: <IntegrationsPage /> },
-      { path: 'venue', element: <Navigate to="/branch" replace /> },
-      { path: '*', element: <Navigate to="/check-in" replace /> },
+      {
+        // A crashing page shows the error inside the frame, so the menu still works
+        errorElement: <RouteError />,
+        children: [
+          { index: true, element: <Home /> },
+          { path: 'dashboard', element: <ManagersOnly><DashboardPage /></ManagersOnly> },
+          { path: 'check-in', element: <CheckInPage /> },
+          { path: 'members', element: <MembersPage /> },
+          { path: 'members/:id', element: <MemberPage /> },
+          { path: 'rewards', element: <RewardsPage /> },
+          { path: 'sms', element: <ManagersOnly><SmsPage /></ManagersOnly> },
+          { path: 'testimonials', element: <TestimonialsPage /> },
+          { path: 'visits', element: <VisitsPage /> },
+          { path: 'campaigns', element: <CampaignsPage /> },
+          { path: 'templates', element: <TemplatesPage /> },
+          { path: 'branch', element: <VenuePage /> },
+          { path: 'club', element: <ClubPage /> },
+          { path: 'integrations', element: <IntegrationsPage /> },
+          { path: 'venue', element: <Navigate to="/branch" replace /> },
+          { path: '*', element: <Navigate to="/check-in" replace /> },
+        ],
+      },
     ],
   },
 ];
