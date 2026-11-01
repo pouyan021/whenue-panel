@@ -491,6 +491,11 @@ export const en = {
   'error.smsNobody': "Nobody in this group can get an SMS right now.",
   'error.smsTooMany': "A campaign can go to at most 20,000 people. Narrow the filters.",
   'error.smsDays': "Days must be between 1 and 3650.",
+  'crash.title': "Something went wrong",
+  'crash.page': "This page hit a problem and could not be shown. The rest of the panel still works. Try again, or reload if it keeps happening.",
+  'crash.panel': "The panel hit a problem and could not be shown. Reload to start again.",
+  'crash.reload': "Reload",
+  'offline.banner': "No internet connection. Changes are not saved until the connection is back.",
 };
 
 export type MessageKey = keyof typeof en;

@@ -1,6 +1,7 @@
 import type React from 'react';
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router';
 
+import { ErrorBoundary, PanelCrashed } from './components/ErrorBoundary';
 import { Shell } from './components/Shell';
 import { useAuth } from './lib/auth';
 import { useCurrentVenue } from './lib/venue';
@@ -23,6 +24,7 @@ export const routes = [
   {
     path: '/',
     element: <Shell />,
+    errorElement: <PanelCrashed />,
     children: [
       { index: true, element: <Home /> },
       { path: 'dashboard', element: <ManagersOnly><DashboardPage /></ManagersOnly> },
@@ -59,5 +61,9 @@ const router = createBrowserRouter(routes);
 
 export function App() {
   const { session } = useAuth();
-  return session ? <RouterProvider router={router} /> : <LoginPage />;
+  return (
+    <ErrorBoundary fallback={() => <PanelCrashed />}>
+      {session ? <RouterProvider router={router} /> : <LoginPage />}
+    </ErrorBoundary>
+  );
 }

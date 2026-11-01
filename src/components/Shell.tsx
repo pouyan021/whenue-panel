@@ -1,12 +1,14 @@
 import { useQuery } from '@apollo/client/react';
 import { useEffect, useState, type ReactNode } from 'react';
-import { NavLink, Outlet } from 'react-router';
+import { NavLink, Outlet, useLocation } from 'react-router';
 
 import { ME, TESTIMONIAL_COUNTS, VENUES, type Me, type VenueSummary } from '../graphql/operations';
 import { langOf, useI18n } from '../i18n/i18n';
 import { useAuth } from '../lib/auth';
 import { useFormat } from '../lib/format';
 import { readAdminVenue, saveAdminVenue, useCurrentVenue, VenueProvider } from '../lib/venue';
+import { ErrorBoundary, PageCrashed } from './ErrorBoundary';
+import { OfflineBanner } from './OfflineBanner';
 import { Button, Empty, ErrorBanner, Loading } from './ui';
 
 /** Loads who is signed in and which branch to show, then renders the page inside the panel frame. */
@@ -52,6 +54,7 @@ function Frame({
   onPickVenue?: (id: string) => void;
 }) {
   const { t, adoptDefault } = useI18n();
+  const { pathname } = useLocation();
   const locale = venue.organization.locale;
   useEffect(() => adoptDefault(langOf(locale)), [adoptDefault, locale]);
 
@@ -75,7 +78,10 @@ function Frame({
           <Account email={me.email} />
         </aside>
         <main className="content" key={venue.id}>
-          <Outlet />
+          <OfflineBanner />
+          <ErrorBoundary key={pathname} fallback={(reset) => <PageCrashed onRetry={reset} />}>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
     </VenueProvider>
