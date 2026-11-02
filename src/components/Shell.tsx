@@ -7,6 +7,7 @@ import { langOf, useI18n } from '../i18n/i18n';
 import { useAuth } from '../lib/auth';
 import { useFormat } from '../lib/format';
 import { readAdminVenue, saveAdminVenue, useCurrentVenue, VenueProvider } from '../lib/venue';
+import { ChangePasswordDialog } from './ChangePasswordDialog';
 import { ErrorBoundary, PageCrashed } from './ErrorBoundary';
 import { OfflineBanner } from './OfflineBanner';
 import { Button, Empty, ErrorBanner, Loading } from './ui';
@@ -134,6 +135,7 @@ function Nav() {
       <NavSection label={t('nav.section.settings')}>
         <NavLink to="/branch">{t('nav.branch')}</NavLink>
         {canManage && <NavLink to="/club">{t('nav.club')}</NavLink>}
+        {canManage && <NavLink to="/staff">{t('nav.staff')}</NavLink>}
         {canManage && <NavLink to="/integrations">{t('nav.integrations')}</NavLink>}
       </NavSection>
     </nav>
@@ -169,15 +171,22 @@ function TestimonialsLink({ venueId }: { venueId: string }) {
 function Account({ email }: { email: string }) {
   const { signOut } = useAuth();
   const { t } = useI18n();
+  const [changing, setChanging] = useState(false);
   return (
     <div className="account">
       <LanguageSwitch />
       <span className="muted" title={email} dir="ltr">
         {email}
       </span>
-      <Button variant="ghost" onClick={signOut}>
-        {t('shell.signOut')}
-      </Button>
+      <div className="account-actions">
+        <Button variant="ghost" onClick={() => setChanging(true)}>
+          {t('password.title')}
+        </Button>
+        <Button variant="ghost" onClick={signOut}>
+          {t('shell.signOut')}
+        </Button>
+      </div>
+      {changing && <ChangePasswordDialog onClose={() => setChanging(false)} />}
     </div>
   );
 }

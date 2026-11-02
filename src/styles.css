@@ -289,7 +289,9 @@ a:focus-visible {
 
 .more {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
   margin-top: 1.25rem;
 }
 
@@ -1443,4 +1445,49 @@ code {
 .tier-table td:nth-child(2),
 .tier-table td:nth-child(3) {
   white-space: nowrap;
+}
+
+.row-muted td {
+  opacity: 0.6;
+}
+
+.staff-email {
+  text-align: start;
+  unicode-bidi: plaintext;
+}
+
+.role-choice {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.input-with-button {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.input-with-button input {
+  flex: 1;
+  min-width: 0;
+}
+
+.sign-in-details {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.3rem 1rem;
+  margin: 0.75rem 0;
+}
+
+.sign-in-details dd {
+  margin: 0;
+  word-break: break-all;
+}
+
+.account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
 }

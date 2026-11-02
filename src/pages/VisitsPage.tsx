@@ -4,8 +4,16 @@ import { Link } from 'react-router';
 
 import { DateTimeInput } from '../components/DateTimeInput';
 import { Mobile } from '../components/members';
-import { Button, Dialog, Empty, ErrorBanner, Field, Loading, StatusBadge } from '../components/ui';
-import { CAMPAIGNS, CREATE_VISIT, DELETE_VISIT, ISSUE_VISIT_TOKEN, VISITS, type Visit } from '../graphql/operations';
+import { Button, Dialog, Empty, ErrorBanner, Field, ListMore, Loading, StatusBadge } from '../components/ui';
+import {
+  CAMPAIGNS,
+  CREATE_VISIT,
+  DELETE_VISIT,
+  ISSUE_VISIT_TOKEN,
+  VISITS,
+  VISITS_COUNT,
+  type Visit,
+} from '../graphql/operations';
 import { useI18n, type Translate } from '../i18n/i18n';
 import { config, visitLink } from '../lib/config';
 import { useFormat } from '../lib/format';
@@ -22,6 +30,7 @@ export function VisitsPage() {
   const [linkFor, setLinkFor] = useState<Visit | null>(null);
   const { data, loading, error } = useQuery(VISITS, { variables: { venueId: venue.id, page: 0, size } });
   const visits = data?.visits ?? [];
+  const total = useQuery(VISITS_COUNT, { variables: { venueId: venue.id } }).data?.visitsCount;
 
   return (
     <section>
@@ -60,13 +69,13 @@ export function VisitsPage() {
         </table>
       )}
 
-      {visits.length === size && (
-        <div className="more">
-          <Button onClick={() => setSize(size + config.pageSize)} disabled={loading}>
-            {t('common.showMore')}
-          </Button>
-        </div>
-      )}
+      <ListMore
+        shown={visits.length}
+        size={size}
+        total={total}
+        loading={loading}
+        onMore={() => setSize(size + config.pageSize)}
+      />
 
       {creating && (
         <NewVisitDialog
@@ -85,7 +94,7 @@ export function VisitsPage() {
 function VisitRow({ visit, testimonials, onLink }: { visit: Visit; testimonials: boolean; onLink: () => void }) {
   const { t } = useI18n();
   const format = useFormat();
-  const [remove, { loading, error }] = useMutation(DELETE_VISIT, { refetchQueries: ['Visits'] });
+  const [remove, { loading, error }] = useMutation(DELETE_VISIT, { refetchQueries: ['Visits', 'VisitsCount'] });
 
   function onDelete() {
     if (!window.confirm(t('visits.deleteConfirm', { name: visit.user.name }))) return;
@@ -138,7 +147,7 @@ function NewVisitDialog({ onClose, onCreated }: { onClose: () => void; onCreated
   const { t } = useI18n();
   const { venue } = useCurrentVenue();
   const campaigns = useQuery(CAMPAIGNS, { variables: { venueId: venue.id, active: true, size: 100 } }).data?.campaigns;
-  const [create, { loading, error }] = useMutation(CREATE_VISIT, { refetchQueries: ['Visits'] });
+  const [create, { loading, error }] = useMutation(CREATE_VISIT, { refetchQueries: ['Visits', 'VisitsCount'] });
   const [form, setForm] = useState({
     name: '',
     email: '',

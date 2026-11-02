@@ -2,7 +2,14 @@ import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
-import { CAMPAIGNS, CREATE_VISIT, ISSUE_VISIT_TOKEN, VISITS, type CreateVisitInput } from '../graphql/operations';
+import {
+  CAMPAIGNS,
+  CREATE_VISIT,
+  ISSUE_VISIT_TOKEN,
+  VISITS,
+  VISITS_COUNT,
+  type CreateVisitInput,
+} from '../graphql/operations';
 import { config } from '../lib/config';
 import { renderPage } from '../test/render';
 import { VisitsPage } from './VisitsPage';
@@ -23,35 +30,53 @@ const visits = (list: object[]) => ({
 });
 
 describe('VisitsPage', () => {
+  it('shows how many of all visits are listed, and more while there are more', async () => {
+    const page = Array.from({ length: config.pageSize }, (_, i) => ({ ...visit, id: String(100 + i) }));
+    renderPage(<VisitsPage />, [
+      visits(page),
+      { request: { query: VISITS_COUNT, variables: { venueId: '3' } }, result: { data: { visitsCount: 45 } } },
+    ]);
+
+    expect(await screen.findByText(`${config.pageSize} of 45`)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Show more' })).toBeInTheDocument();
+  });
+
+  it('hides the button once every visit is shown', async () => {
+    renderPage(<VisitsPage />, [
+      visits([visit]),
+      { request: { query: VISITS_COUNT, variables: { venueId: '3' } }, result: { data: { visitsCount: 1 } } },
+    ]);
+
+    expect(await screen.findByText('1 of 1')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Show more' })).toBeNull();
+  });
+
   it('adds a visit and hands out the visitor link', async () => {
     const user = userEvent.setup();
-    renderPage(
-      <VisitsPage />,
-      [
-        visits([]),
-        {
-          request: { query: CAMPAIGNS, variables: { venueId: '3', active: true, size: 100 } },
-          result: { data: { campaigns: [] } },
+    renderPage(<VisitsPage />, [
+      visits([]),
+      {
+        request: { query: CAMPAIGNS, variables: { venueId: '3', active: true, size: 100 } },
+        result: { data: { campaigns: [] } },
+      },
+      {
+        request: {
+          query: CREATE_VISIT,
+          // The visit time defaults to now, so only the visitor is checked.
+          variables: ({ input }: { input: CreateVisitInput }) =>
+            JSON.stringify(input.visitor) === JSON.stringify({ name: 'Sam', email: 'sam@example.com', phone: null }),
         },
-        {
-          request: {
-            query: CREATE_VISIT,
-            // The visit time defaults to now, so only the visitor is checked.
-            variables: ({ input }: { input: CreateVisitInput }) =>
-              JSON.stringify(input.visitor) === JSON.stringify({ name: 'Sam', email: 'sam@example.com', phone: null }),
-          },
-          result: { data: { createVisit: visit } },
+        result: { data: { createVisit: visit } },
+      },
+      visits([visit]),
+      {
+        request: { query: ISSUE_VISIT_TOKEN, variables: { visitId: '42' } },
+        result: {
+          data: { issueVisitToken: { __typename: 'VisitToken', token: 'tok123', expiresAt: '2026-10-27T12:00:00Z' } },
         },
-        visits([visit]),
-        {
-          request: { query: ISSUE_VISIT_TOKEN, variables: { visitId: '42' } },
-          result: {
-            data: { issueVisitToken: { __typename: 'VisitToken', token: 'tok123', expiresAt: '2026-10-27T12:00:00Z' } },
-          },
-          maxUsageCount: 2,
-        },
-      ],
-    );
+        maxUsageCount: 2,
+      },
+    ]);
 
     expect(await screen.findByText('No visits yet.')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'New visit' }));

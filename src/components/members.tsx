@@ -48,7 +48,7 @@ export function InviteMemberDialog({
 }) {
   const { t } = useI18n();
   const { organization } = useCurrentVenue();
-  const [invite, { loading, error }] = useMutation(INVITE_MEMBER, { refetchQueries: ['Members'] });
+  const [invite, { loading, error }] = useMutation(INVITE_MEMBER, { refetchQueries: ['Members', 'MembersCount'] });
   const [name, setName] = useState('');
   const [mobile, setMobile] = useState(initialMobile);
 

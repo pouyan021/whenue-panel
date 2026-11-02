@@ -1247,3 +1247,109 @@ export const SEND_SMS_CAMPAIGN: TypedDocumentNode<
   }
   ${SMS_CAMPAIGN}
 `;
+
+// List totals
+
+export const MEMBERS_COUNT: TypedDocumentNode<
+  { membersCount: number },
+  { organizationId: string; search?: string | null; joined?: boolean }
+> = gql`
+  query MembersCount($organizationId: ID, $search: String, $joined: Boolean) {
+    membersCount(organizationId: $organizationId, search: $search, joined: $joined)
+  }
+`;
+
+export const VISITS_COUNT: TypedDocumentNode<{ visitsCount: number }, { venueId: string }> = gql`
+  query VisitsCount($venueId: ID!) {
+    visitsCount(venueId: $venueId)
+  }
+`;
+
+// Staff accounts
+
+export type StaffAccount = {
+  id: string;
+  email: string;
+  role: StaffRole;
+  enabled: boolean;
+  venue: { id: string; name: string } | null;
+  createdAt: string;
+};
+
+const STAFF_FIELDS = gql`
+  fragment StaffFields on StaffAccount {
+    id
+    email
+    role
+    enabled
+    venue {
+      id
+      name
+    }
+    createdAt
+  }
+`;
+
+export const STAFF_ACCOUNTS: TypedDocumentNode<{ staffAccounts: StaffAccount[] }, { organizationId: string }> = gql`
+  query StaffAccounts($organizationId: ID) {
+    staffAccounts(organizationId: $organizationId) {
+      ...StaffFields
+    }
+  }
+  ${STAFF_FIELDS}
+`;
+
+export const CREATE_STAFF_ACCOUNT: TypedDocumentNode<
+  { createStaffAccount: StaffAccount },
+  {
+    input: {
+      email: string;
+      password: string;
+      role: StaffRole;
+      organizationId?: string | null;
+      venueId?: string | null;
+    };
+  }
+> = gql`
+  mutation CreateStaffAccount($input: CreateStaffAccountInput!) {
+    createStaffAccount(input: $input) {
+      ...StaffFields
+    }
+  }
+  ${STAFF_FIELDS}
+`;
+
+export const UPDATE_STAFF_ACCOUNT: TypedDocumentNode<
+  { updateStaffAccount: StaffAccount },
+  { id: string; input: { role?: StaffRole; venueId?: string | null; enabled?: boolean } }
+> = gql`
+  mutation UpdateStaffAccount($id: ID!, $input: UpdateStaffAccountInput!) {
+    updateStaffAccount(id: $id, input: $input) {
+      ...StaffFields
+    }
+  }
+  ${STAFF_FIELDS}
+`;
+
+export const SET_STAFF_PASSWORD: TypedDocumentNode<
+  { setStaffPassword: { id: string } },
+  { id: string; password: string }
+> = gql`
+  mutation SetStaffPassword($id: ID!, $password: String!) {
+    setStaffPassword(id: $id, password: $password) {
+      id
+    }
+  }
+`;
+
+export const CHANGE_MY_PASSWORD: TypedDocumentNode<
+  { changeMyPassword: { token: string; expiresAt: string } },
+  { currentPassword: string; newPassword: string }
+> = gql`
+  mutation ChangeMyPassword($currentPassword: String!, $newPassword: String!) {
+    changeMyPassword(currentPassword: $currentPassword, newPassword: $newPassword) {
+      token
+      expiresAt
+    }
+  }
+`;
