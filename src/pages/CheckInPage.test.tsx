@@ -13,6 +13,7 @@ const summary = {
   mobile: '+989121234567',
   memberSince: '2026-09-01T08:00:00Z',
   pointsBalance: 120,
+  tier: null,
   createdAt: '2026-09-01T08:00:00Z',
 };
 
@@ -26,6 +27,8 @@ const detail = (pointsBalance: number) => ({
   redemptions: [],
   referralCode: 'SARA21',
   referrals: { __typename: 'ReferralCounts', pending: 0, qualified: 1 },
+  birthDate: null,
+  tierProgress: { __typename: 'TierProgress', earnedLastYear: 0, pointsToNext: 0, next: null },
 });
 
 const reward = {
@@ -52,8 +55,10 @@ const loyalty = {
           referrerPoints: 100,
           friendPoints: 50,
           testimonialPoints: 20,
+          birthdayPoints: 0,
         },
         rewards: [reward],
+        tiers: [],
       },
     },
   },

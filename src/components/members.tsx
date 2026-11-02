@@ -28,6 +28,10 @@ export function MemberStatus({ member }: { member: Pick<MemberSummary, 'memberSi
   );
 }
 
+export function TierBadge({ name }: { name: string }) {
+  return <span className="badge badge-tier">{name}</span>;
+}
+
 export function memberName(member: Pick<MemberSummary, 'name'>, fallback: string) {
   return member.name?.trim() || fallback;
 }
@@ -51,7 +55,9 @@ export function InviteMemberDialog({
   async function submit(event: FormEvent) {
     event.preventDefault();
     const result = await invite({
-      variables: { input: { organizationId: organization.id, name: name.trim(), mobile: toLatinDigits(mobile.trim()) } },
+      variables: {
+        input: { organizationId: organization.id, name: name.trim(), mobile: toLatinDigits(mobile.trim()) },
+      },
     }).catch(() => null);
     if (result?.data) onInvited(result.data.inviteMember);
   }

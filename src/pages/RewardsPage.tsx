@@ -1,13 +1,18 @@
 import { useMutation, useQuery } from '@apollo/client/react';
 import { useState, type FormEvent } from 'react';
 
+import { TierBadge } from '../components/members';
 import { Button, Dialog, Empty, ErrorBanner, Field, Loading } from '../components/ui';
 import {
+  CREATE_LOYALTY_TIER,
   CREATE_REWARD,
+  DELETE_LOYALTY_TIER,
   LOYALTY,
   UPDATE_LOYALTY_PROGRAM,
+  UPDATE_LOYALTY_TIER,
   UPDATE_REWARD,
   type LoyaltyProgram,
+  type LoyaltyTier,
   type Reward,
 } from '../graphql/operations';
 import { useI18n } from '../i18n/i18n';
@@ -48,6 +53,7 @@ export function RewardsPage() {
             <RewardTable rewards={rewards} onEdit={canManage ? setEditing : undefined} />
           )}
           {program && <ProgramCard program={program} />}
+          {data?.organization && <TiersCard tiers={data.organization.tiers} />}
         </>
       )}
 
@@ -132,7 +138,12 @@ function RewardDialog({ reward, onClose }: { reward: Reward | null; onClose: () 
           <textarea rows={2} value={form.description} onChange={(e) => set('description', e.target.value)} />
         </Field>
         <Field label={t('rewards.cost')}>
-          <input required inputMode="numeric" value={form.pointsCost} onChange={(e) => set('pointsCost', e.target.value)} />
+          <input
+            required
+            inputMode="numeric"
+            value={form.pointsCost}
+            onChange={(e) => set('pointsCost', e.target.value)}
+          />
         </Field>
         {reward && (
           <label className="checkbox">
@@ -184,13 +195,23 @@ function ProgramCard({ program }: { program: LoyaltyProgram }) {
             })}
           </li>
         )}
+        {program.birthdayPoints > 0 && (
+          <li>{t('program.birthday', { points: format.points(program.birthdayPoints) })}</li>
+        )}
       </ul>
       {editing && <ProgramDialog program={program} onClose={() => setEditing(false)} />}
     </div>
   );
 }
 
-const PROGRAM_FIELDS = ['pointsPerVisit', 'pointsPerSpendUnit', 'testimonialPoints', 'referrerPoints', 'friendPoints'] as const;
+const PROGRAM_FIELDS = [
+  'pointsPerVisit',
+  'pointsPerSpendUnit',
+  'testimonialPoints',
+  'referrerPoints',
+  'friendPoints',
+  'birthdayPoints',
+] as const;
 
 function ProgramDialog({ program, onClose }: { program: LoyaltyProgram; onClose: () => void }) {
   const { t } = useI18n();
@@ -225,16 +246,28 @@ function ProgramDialog({ program, onClose }: { program: LoyaltyProgram; onClose:
         <p className="muted">{t('program.intro')}</p>
         <div className="form-row">
           <Field label={t('program.field.pointsPerSpendUnit')}>
-            <input inputMode="numeric" value={form.pointsPerSpendUnit} onChange={(e) => setForm({ ...form, pointsPerSpendUnit: e.target.value })} />
+            <input
+              inputMode="numeric"
+              value={form.pointsPerSpendUnit}
+              onChange={(e) => setForm({ ...form, pointsPerSpendUnit: e.target.value })}
+            />
           </Field>
           <Field label={t('program.field.spendUnitToman')}>
-            <input inputMode="numeric" value={form.spendUnitToman} onChange={(e) => setForm({ ...form, spendUnitToman: e.target.value })} />
+            <input
+              inputMode="numeric"
+              value={form.spendUnitToman}
+              onChange={(e) => setForm({ ...form, spendUnitToman: e.target.value })}
+            />
           </Field>
         </div>
         {shown
           .filter((f) => f !== 'pointsPerSpendUnit')
           .map((f) => (
-            <Field key={f} label={t(`program.field.${f}`)}>
+            <Field
+              key={f}
+              label={t(`program.field.${f}`)}
+              hint={f === 'birthdayPoints' ? t('program.birthdayHint') : undefined}
+            >
               <input inputMode="numeric" value={form[f]} onChange={(e) => setForm({ ...form, [f]: e.target.value })} />
             </Field>
           ))}
@@ -242,6 +275,123 @@ function ProgramDialog({ program, onClose }: { program: LoyaltyProgram; onClose:
         <div className="form-actions">
           <Button onClick={onClose}>{t('common.cancel')}</Button>
           <Button variant="primary" type="submit" disabled={loading || invalid}>
+            {t('common.save')}
+          </Button>
+        </div>
+      </form>
+    </Dialog>
+  );
+}
+
+/** Levels members reach by points earned in the last 12 months, each with extra points per visit. */
+function TiersCard({ tiers }: { tiers: LoyaltyTier[] }) {
+  const { t } = useI18n();
+  const format = useFormat();
+  const { canManage } = useCurrentVenue();
+  const [editing, setEditing] = useState<LoyaltyTier | 'new' | null>(null);
+  const [remove, removing] = useMutation(DELETE_LOYALTY_TIER, { refetchQueries: ['Loyalty'] });
+
+  function onDelete(tier: LoyaltyTier) {
+    if (!window.confirm(t('tiers.deleteConfirm', { name: tier.name }))) return;
+    void remove({ variables: { id: tier.id } }).catch(() => undefined);
+  }
+
+  return (
+    <div className="card program">
+      <div className="row">
+        <h2>{t('tiers.title')}</h2>
+        {canManage && tiers.length < 6 && <Button onClick={() => setEditing('new')}>{t('tiers.new')}</Button>}
+      </div>
+      <p className="muted">{t('tiers.intro')}</p>
+      {tiers.length === 0 ? (
+        <p className="muted">{t('tiers.empty')}</p>
+      ) : (
+        <table className="table table-plain tier-table">
+          <tbody>
+            {tiers.map((tier) => (
+              <tr key={tier.id}>
+                <td>
+                  <TierBadge name={tier.name} />
+                </td>
+                <td>{t('tiers.from', { points: format.points(tier.minPoints) })}</td>
+                <td dir="ltr">{t('tiers.bonus', { percent: format.percent(tier.bonusPercent / 100) })}</td>
+                {canManage && (
+                  <td className="row-actions">
+                    <Button onClick={() => setEditing(tier)}>{t('common.edit')}</Button>
+                    <Button variant="ghost" disabled={removing.loading} onClick={() => onDelete(tier)}>
+                      {t('common.delete')}
+                    </Button>
+                  </td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      <ErrorBanner error={removing.error} />
+      {editing && <TierDialog tier={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
+    </div>
+  );
+}
+
+function TierDialog({ tier, onClose }: { tier: LoyaltyTier | null; onClose: () => void }) {
+  const { t } = useI18n();
+  const { organization } = useCurrentVenue();
+  const [create, creation] = useMutation(CREATE_LOYALTY_TIER, { refetchQueries: ['Loyalty'] });
+  const [update, updating] = useMutation(UPDATE_LOYALTY_TIER, { refetchQueries: ['Loyalty'] });
+  const [form, setForm] = useState({
+    name: tier?.name ?? '',
+    minPoints: tier?.minPoints.toString() ?? '',
+    bonusPercent: tier?.bonusPercent.toString() ?? '',
+  });
+  const minPoints = parseWholeNumber(form.minPoints);
+  const bonusPercent = parseWholeNumber(form.bonusPercent);
+  const invalid = !form.name.trim() || !minPoints || bonusPercent == null || bonusPercent > 200;
+  const busy = creation.loading || updating.loading;
+
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (invalid) return;
+    const input = { name: form.name.trim(), minPoints: minPoints!, bonusPercent: bonusPercent! };
+    const ok = tier
+      ? await update({ variables: { id: tier.id, input } }).catch(() => null)
+      : await create({ variables: { input: { ...input, organizationId: organization.id } } }).catch(() => null);
+    if (ok?.data) onClose();
+  }
+
+  return (
+    <Dialog title={tier ? t('tiers.edit') : t('tiers.new')} onClose={onClose}>
+      <form className="form" onSubmit={submit}>
+        <Field label={t('tiers.name')}>
+          <input
+            required
+            maxLength={64}
+            value={form.name}
+            onChange={(e) => setForm({ ...form, name: e.target.value })}
+          />
+        </Field>
+        <div className="form-row">
+          <Field label={t('tiers.minPoints')}>
+            <input
+              required
+              inputMode="numeric"
+              value={form.minPoints}
+              onChange={(e) => setForm({ ...form, minPoints: e.target.value })}
+            />
+          </Field>
+          <Field label={t('tiers.bonusPercent')}>
+            <input
+              required
+              inputMode="numeric"
+              value={form.bonusPercent}
+              onChange={(e) => setForm({ ...form, bonusPercent: e.target.value })}
+            />
+          </Field>
+        </div>
+        <ErrorBanner error={creation.error ?? updating.error} />
+        <div className="form-actions">
+          <Button onClick={onClose}>{t('common.cancel')}</Button>
+          <Button variant="primary" type="submit" disabled={busy || invalid}>
             {t('common.save')}
           </Button>
         </div>
