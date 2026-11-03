@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router';
 
 import { TestimonialDialog } from '../components/TestimonialDialog';
-import { Button, Empty, ErrorBanner, Loading, StatusBadge, Stars, VIDEO_LABEL } from '../components/ui';
+import { Empty, ErrorBanner, ListMore, Loading, StatusBadge, Stars, VIDEO_LABEL } from '../components/ui';
 import { TESTIMONIAL_COUNTS, TESTIMONIALS, type Testimonial, type TestimonialStatus } from '../graphql/operations';
 import type { MessageKey } from '../i18n/en';
 import { useI18n } from '../i18n/i18n';
@@ -89,13 +89,13 @@ export function TestimonialsPage() {
         </ul>
       )}
 
-      {testimonials.length === size && (
-        <div className="more">
-          <Button onClick={() => setSize(size + config.pageSize)} disabled={loading}>
-            {t('common.showMore')}
-          </Button>
-        </div>
-      )}
+      <ListMore
+        shown={testimonials.length}
+        size={size}
+        total={countOf(filter) ?? undefined}
+        loading={loading}
+        onMore={() => setSize(size + config.pageSize)}
+      />
 
       {openId && <TestimonialDialog id={openId} onClose={() => open(null)} />}
     </section>
@@ -107,11 +107,7 @@ function TestimonialCard({ testimonial: item, onOpen }: { testimonial: Testimoni
   const format = useFormat();
   const poster = item.video?.posterUrl;
   return (
-    <button
-      className="testimonial-card"
-      onClick={onOpen}
-      aria-label={t('testimonials.open', { name: item.user.name })}
-    >
+    <button className="testimonial-card" onClick={onOpen} aria-label={t('testimonials.open', { name: item.user.name })}>
       <div className="poster">
         {poster ? (
           <img src={poster} alt="" loading="lazy" />
@@ -121,7 +117,9 @@ function TestimonialCard({ testimonial: item, onOpen }: { testimonial: Testimoni
           </span>
         )}
         {item.video?.durationSeconds != null && (
-          <span className="duration">{t('video.seconds', { seconds: format.number(Math.round(item.video.durationSeconds)) })}</span>
+          <span className="duration">
+            {t('video.seconds', { seconds: format.number(Math.round(item.video.durationSeconds)) })}
+          </span>
         )}
       </div>
       <div className="testimonial-meta">

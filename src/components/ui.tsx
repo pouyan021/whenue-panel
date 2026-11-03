@@ -3,7 +3,7 @@ import { useEffect, useRef, type ButtonHTMLAttributes, type ReactNode } from 're
 import type { MessageKey } from '../i18n/en';
 import { useI18n } from '../i18n/i18n';
 import type { TestimonialStatus, VideoStatus } from '../graphql/operations';
-import { errorMessage } from '../lib/format';
+import { errorMessage, useFormat } from '../lib/format';
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: 'primary' | 'secondary' | 'danger' | 'ghost';
@@ -144,6 +144,43 @@ export function OneTimeSecret({ label, value }: { label: string; value: string }
           {t('common.copy')}
         </Button>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Under a list loaded page by page: how many of how many are shown, and a button for more while
+ * there are more. Without a total yet, a full last page means there may be more.
+ */
+export function ListMore({
+  shown,
+  size,
+  total,
+  loading,
+  onMore,
+}: {
+  shown: number;
+  size: number;
+  total: number | undefined;
+  loading: boolean;
+  onMore: () => void;
+}) {
+  const { t } = useI18n();
+  const format = useFormat();
+  const more = total == null ? shown === size : shown < total;
+  if (shown === 0) return null;
+  return (
+    <div className="more">
+      {total != null && (
+        <span className="muted small">
+          {t('common.shownOf', { shown: format.number(shown), total: format.number(total) })}
+        </span>
+      )}
+      {more && (
+        <Button onClick={onMore} disabled={loading}>
+          {t('common.showMore')}
+        </Button>
+      )}
     </div>
   );
 }

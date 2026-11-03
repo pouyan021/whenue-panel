@@ -1,4 +1,4 @@
-import { ApolloClient, ApolloLink, CombinedGraphQLErrors, HttpLink, InMemoryCache } from '@apollo/client';
+import { ApolloClient, ApolloLink, CombinedGraphQLErrors, HttpLink, InMemoryCache, ServerError } from '@apollo/client';
 import { SetContextLink } from '@apollo/client/link/context';
 import { ErrorLink } from '@apollo/client/link/error';
 
@@ -11,13 +11,13 @@ const authLink = new SetContextLink((prevContext) => {
   return { headers: { ...prevContext.headers, authorization: `Bearer ${session.token}` } };
 });
 
-// whenue-api answers an expired or missing token with UNAUTHENTICATED; send the user back to login.
+// whenue-api answers a missing token with UNAUTHENTICATED, and a token it no longer accepts (expired,
+// or the account was switched off or changed) with HTTP 401; either way, back to login.
 const signOutLink = new ErrorLink(({ error }) => {
-  if (
-    CombinedGraphQLErrors.is(error) &&
-    error.errors.some((e) => e.extensions?.errorType === 'UNAUTHENTICATED') &&
-    readSession()
-  ) {
+  const unauthenticated =
+    (CombinedGraphQLErrors.is(error) && error.errors.some((e) => e.extensions?.errorType === 'UNAUTHENTICATED')) ||
+    (ServerError.is(error) && error.statusCode === 401);
+  if (unauthenticated && readSession()) {
     saveSession(null);
   }
 });

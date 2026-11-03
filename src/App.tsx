@@ -15,6 +15,7 @@ import { MemberPage } from './pages/MemberPage';
 import { MembersPage } from './pages/MembersPage';
 import { RewardsPage } from './pages/RewardsPage';
 import { SmsPage } from './pages/SmsPage';
+import { StaffPage } from './pages/StaffPage';
 import { TemplatesPage } from './pages/TemplatesPage';
 import { TestimonialsPage } from './pages/TestimonialsPage';
 import { VenuePage } from './pages/VenuePage';
@@ -39,6 +40,7 @@ export const routes = [
       { path: 'templates', element: <TemplatesPage /> },
       { path: 'branch', element: <VenuePage /> },
       { path: 'club', element: <ClubPage /> },
+      { path: 'staff', element: <ManagersOnly><StaffPage /></ManagersOnly> },
       { path: 'integrations', element: <IntegrationsPage /> },
       { path: 'venue', element: <Navigate to="/branch" replace /> },
       { path: '*', element: <Navigate to="/check-in" replace /> },

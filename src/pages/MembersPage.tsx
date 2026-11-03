@@ -4,8 +4,8 @@ import { Link, useNavigate, useSearchParams } from 'react-router';
 
 import { ImportMembersDialog } from '../components/ImportMembersDialog';
 import { InviteMemberDialog, Mobile, memberName, TierBadge } from '../components/members';
-import { Button, Empty, ErrorBanner, Loading } from '../components/ui';
-import { MEMBERS, type MemberSummary } from '../graphql/operations';
+import { Button, Empty, ErrorBanner, ListMore, Loading } from '../components/ui';
+import { MEMBERS, MEMBERS_COUNT, type MemberSummary } from '../graphql/operations';
 import { useI18n } from '../i18n/i18n';
 import { config } from '../lib/config';
 import { useFormat } from '../lib/format';
@@ -35,6 +35,9 @@ export function MembersPage() {
     variables: { organizationId: organization.id, search: search.trim() || null, joined, page: 0, size },
   });
   const members = data?.members ?? [];
+  const total = useQuery(MEMBERS_COUNT, {
+    variables: { organizationId: organization.id, search: search.trim() || null, joined },
+  }).data?.membersCount;
 
   function update(next: { q?: string; tab?: string }) {
     const merged = { q: search, tab: joined ? '' : 'not-joined', ...next };
@@ -121,13 +124,13 @@ export function MembersPage() {
         </table>
       )}
 
-      {members.length === size && (
-        <div className="more">
-          <Button onClick={() => setSize(size + config.pageSize)} disabled={loading}>
-            {t('common.showMore')}
-          </Button>
-        </div>
-      )}
+      <ListMore
+        shown={members.length}
+        size={size}
+        total={total}
+        loading={loading}
+        onMore={() => setSize(size + config.pageSize)}
+      />
 
       {inviting && (
         <InviteMemberDialog
