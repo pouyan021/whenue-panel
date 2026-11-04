@@ -15,4 +15,7 @@ COPY deploy/nginx.conf.template /etc/nginx/templates/default.conf.template
 COPY --from=builder /app/dist /usr/share/nginx/html
 # Where nginx forwards /graphql; the Helm chart points it at the whenue-api Service
 ENV API_UPSTREAM=http://whenue-api:8080
+# Where visitor links (and their QR codes) point, e.g. https://club.example.com/visit/. Empty
+# keeps the build-time VITE_VISIT_LINK_BASE, the app's whenue://visit/ scheme.
+ENV VISIT_LINK_BASE=
 EXPOSE 8080

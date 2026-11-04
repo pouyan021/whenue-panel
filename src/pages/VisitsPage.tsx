@@ -1,4 +1,5 @@
 import { useMutation, useQuery } from '@apollo/client/react';
+import { QRCodeSVG } from 'qrcode.react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 
@@ -248,6 +249,13 @@ function VisitLinkDialog({ visit, onClose }: { visit: Visit; onClose: () => void
       ) : (
         <div className="form">
           <p>{t('visits.linkIntro')}</p>
+          {link && (
+            <figure className="visit-qr">
+              {/* Scanned with the visitor's phone camera at the front desk */}
+              <QRCodeSVG value={link} size={208} marginSize={2} title={t('visits.qrTitle')} />
+              <figcaption>{t('visits.qrHint')}</figcaption>
+            </figure>
+          )}
           <Field label={t('visits.link')} hint={t('visits.linkUntil', { date: format.dateTime(token.expiresAt) })}>
             <input readOnly dir="ltr" value={link ?? ''} onFocus={(e) => e.target.select()} />
           </Field>

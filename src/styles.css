@@ -1491,3 +1491,22 @@ code {
   flex-wrap: wrap;
   gap: 0.25rem;
 }
+
+/* Visitor link QR code: dark modules on white in both themes, so every phone camera reads it */
+.visit-qr {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.visit-qr svg {
+  background: #fff;
+  border-radius: 8px;
+  max-width: 100%;
+  height: auto;
+}
+.visit-qr figcaption {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
