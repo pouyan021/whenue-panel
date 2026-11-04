@@ -28,6 +28,14 @@ server {
         add_header Cache-Control "no-cache";
     }
 
+    # Runtime settings for the app shell, from the container's environment, so one image can
+    # point visitor links at any member-app address
+    location = /config.js {
+        default_type application/javascript;
+        add_header Cache-Control "no-cache";
+        return 200 "window.WHENUE_CONFIG = { visitLinkBase: '${VISIT_LINK_BASE}' };\n";
+    }
+
     location = /healthz {
         access_log off;
         return 200 "ok\n";
