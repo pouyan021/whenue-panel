@@ -29,9 +29,15 @@ export function TestimonialsPage() {
   const openId = params.get('open');
   const [size, setSize] = useState(config.pageSize);
 
-  const counts = useQuery(TESTIMONIAL_COUNTS, { variables: { venueId: venue.id } }).data?.testimonialCounts;
+  // Visitors send testimonials from their phones while this page is closed, so each visit asks the
+  // API again instead of showing only the list Apollo cached the last time
+  const counts = useQuery(TESTIMONIAL_COUNTS, {
+    variables: { venueId: venue.id },
+    fetchPolicy: 'cache-and-network',
+  }).data?.testimonialCounts;
   const { data, loading, error } = useQuery(TESTIMONIALS, {
     variables: { venueId: venue.id, status: filter === 'ALL' ? null : filter, page: 0, size },
+    fetchPolicy: 'cache-and-network',
   });
   const testimonials = data?.testimonials ?? [];
 
